@@ -1,0 +1,18 @@
+# 操作系统 / 编辑器杂项
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 依赖与缓存
+node_modules/
+.cache/
+
+# 本地临时目录
+.tmp/
+
+# 浏览器自动化会话产物
+.dumate/

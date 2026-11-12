@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KeyLab 键盘检测工具：键位检测、同时按键检测与鼠标连点（CPS）测试，纯本地离线运行。">
+  <title>KeyLab · 键盘检测工具</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f172a'/%3E%3Crect x='6' y='9' width='20' height='14' rx='3' fill='none' stroke='%232dd4bf' stroke-width='2'/%3E%3Cpath d='M10 14h2M15 14h2M20 14h2M10 19h12' stroke='%232dd4bf' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <a class="brand" href="#keys" aria-label="KeyLab 首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="30" height="30" fill="none">
+            <rect x="4" y="7" width="24" height="18" rx="4" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 12h2M13 12h2M18 12h2M23 12h1M8 17h2M13 17h2M18 17h2M23 17h1M9 22h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <strong>KeyLab</strong>
+          <small>键盘检测工具</small>
+        </span>
+      </a>
+
+      <div class="top-actions">
+        <button class="icon-btn" id="soundToggle" type="button" aria-pressed="false" title="开启按键音">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true">
+            <path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path class="sound-wave" d="M16.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <span>按键音</span>
+        </button>
+        <button class="icon-btn" id="themeToggle" type="button" aria-pressed="false" title="切换浅色 / 深色主题">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <span class="theme-label">浅色</span>
+        </button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="检测模式">
+      <button class="tab is-active" id="tab-keys" role="tab" aria-selected="true" aria-controls="panel-keys" data-tab="keys" type="button">
+        键位检测
+      </button>
+      <button class="tab" id="tab-cps" role="tab" aria-selected="false" aria-controls="panel-cps" data-tab="cps" type="button">
+        连点检测
+      </button>
+      <span class="tab-indicator" aria-hidden="true"></span>
+    </nav>
+
+    <main>
+      <!-- ============ 键位检测 ============ -->
+      <section id="panel-keys" class="panel" role="tabpanel" aria-labelledby="tab-keys">
+        <div class="stat-grid">
+          <article class="stat-card">
+            <span class="stat-label">已检测键位</span>
+            <div class="stat-value"><strong id="statTested">0</strong><span class="stat-of">/ <span id="statTotal">0</span></span></div>
+            <div class="meter" aria-hidden="true"><span id="coverageBar"></span></div>
+            <span class="stat-foot" id="coverageText">覆盖率 0%</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">同时按下</span>
+            <div class="stat-value"><strong id="statPressed">0</strong><span class="stat-of">键</span></div>
+            <span class="stat-foot">峰值 <b id="statPeak">0</b> 键（NKRO 参考）</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">按键次数</span>
+            <div class="stat-value"><strong id="statPresses">0</strong><span class="stat-of">次</span></div>
+            <span class="stat-foot">含长按重复触发</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">最近按键</span>
+            <div class="stat-value stat-value-code"><strong id="statLast">—</strong></div>
+            <span class="stat-foot" id="statLastTime">等待输入</span>
+          </article>
+        </div>
+
+        <article class="card keyboard-card">
+          <header class="card-head">
+            <div>
+              <h2>键盘键位检测</h2>
+              <p>按下任意键查看高亮与键值；已检测键位会保留标记，便于排查失灵按键。</p>
+            </div>
+            <button class="btn ghost" id="resetKeys" type="button">重置检测</button>
+          </header>
+
+          <div class="kb-scroll">
+            <div class="keyboard" id="keyboard" aria-label="可交互键盘布局（只读显示）"></div>
+          </div>
+
+          <div class="legend">
+            <span class="legend-item"><i class="dot dot-tested"></i>已检测</span>
+            <span class="legend-item"><i class="dot dot-active"></i>正在按下</span>
+            <span class="legend-item"><i class="dot dot-idle"></i>未检测</span>
+            <span class="legend-hint">提示：可同时按住多个键测试无冲；部分系统快捷键（如 Win 键）会被操作系统拦截。</span>
+          </div>
+        </article>
+
+        <div class="split">
+          <article class="card detail-card">
+            <header class="card-head">
+              <div>
+                <h2>按键详情</h2>
+                <p>基于物理键位 <code>event.code</code> 识别，与键盘布局无关。</p>
+              </div>
+            </header>
+            <div class="detail-body">
+              <div class="key-display" id="keyDisplay" aria-live="polite">
+                <span class="key-display-label" id="detailLabel">—</span>
+                <span class="key-display-sub" id="detailSub">等待按键</span>
+              </div>
+              <dl class="detail-list">
+                <div><dt>event.key</dt><dd id="detailKey">—</dd></div>
+                <div><dt>event.code</dt><dd id="detailCode">—</dd></div>
+                <div><dt>keyCode</dt><dd id="detailKeyCode">—</dd></div>
+                <div><dt>位置</dt><dd id="detailLocation">—</dd></div>
+                <div><dt>重复触发</dt><dd id="detailRepeat">—</dd></div>
+                <div><dt>触发时间</dt><dd id="detailTime">—</dd></div>
+              </dl>
+            </div>
+          </article>
+
+          <article class="card history-card">
+            <header class="card-head">
+              <div>
+                <h2>按键记录</h2>
+                <p>最近 12 次按键，按时间倒序。</p>
+              </div>
+            </header>
+            <ol class="key-log" id="keyLog">
+              <li class="empty">还没有按键记录，按下一个键开始检测。</li>
+            </ol>
+          </article>
+        </div>
+      </section>
+
+      <!-- ============ 连点检测 ============ -->
+      <section id="panel-cps" class="panel" role="tabpanel" aria-labelledby="tab-cps" hidden>
+        <div class="stat-grid">
+          <article class="stat-card">
+            <span class="stat-label">平均 CPS</span>
+            <div class="stat-value"><strong id="statAvgCps">0.0</strong><span class="stat-of">次/秒</span></div>
+            <span class="stat-foot" id="statCpsHint">完成一轮后统计</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">总点击数</span>
+            <div class="stat-value"><strong id="statClicks">0</strong><span class="stat-of">次</span></div>
+            <span class="stat-foot" id="statDurationHint">本轮时长 5 秒</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">最快间隔</span>
+            <div class="stat-value"><strong id="statFastest">—</strong><span class="stat-of">ms</span></div>
+            <span class="stat-foot">相邻两次点击最短用时</span>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">最长间隔</span>
+            <div class="stat-value"><strong id="statSlowest">—</strong><span class="stat-of">ms</span></div>
+            <span class="stat-foot" id="statPeakWindow">最高瞬时 0 次/秒</span>
+          </article>
+        </div>
+
+        <article class="card cps-card">
+          <header class="card-head">
+            <div>
+              <h2>鼠标连点检测</h2>
+              <p>第一次点击开始计时，在限定时间内尽可能快地点击区域。</p>
+            </div>
+            <div class="seg" role="group" aria-label="测试时长" id="durationSeg">
+              <button class="seg-btn" type="button" data-duration="1">1 秒</button>
+              <button class="seg-btn is-active" type="button" data-duration="5">5 秒</button>
+              <button class="seg-btn" type="button" data-duration="10">10 秒</button>
+            </div>
+          </header>
+
+          <div class="pad-wrap">
+            <div class="click-pad" id="clickPad" role="button" tabindex="0" aria-label="连点测试区域，点击或按空格开始">
+              <span class="pad-corner pad-corner-tl" aria-hidden="true"></span>
+              <span class="pad-corner pad-corner-br" aria-hidden="true"></span>
+              <div class="pad-center">
+                <span class="pad-count" id="clickCount">0</span>
+                <span class="pad-unit">次点击</span>
+              </div>
+              <div class="pad-hint" id="padHint">点击此处开始</div>
+              <div class="pad-overlay" id="padOverlay" hidden>
+                <span class="overlay-eyebrow">本轮完成</span>
+                <div class="overlay-score"><strong id="overlayCps">0.0</strong><span>CPS</span></div>
+                <span class="overlay-sub" id="overlayClicks">0 次点击</span>
+                <button class="btn primary" id="retryBtn" type="button">再来一次</button>
+              </div>
+            </div>
+
+            <div class="pad-meta">
+              <div class="pad-live"><span id="liveCps">0.0</span><small>瞬时 CPS</small></div>
+              <div class="pad-timer-track" aria-hidden="true"><div class="pad-timer-bar" id="padTimerBar"></div></div>
+              <div class="pad-time"><span id="timeLeft">5.0</span><small>秒剩余</small></div>
+            </div>
+          </div>
+        </article>
+
+        <div class="split">
+          <article class="card chart-card">
+            <header class="card-head">
+              <div>
+                <h2>每秒点击分布</h2>
+                <p>柱状图为每秒点击数，虚线为本轮平均值。</p>
+              </div>
+              <span class="best-badge" id="bestBadge" hidden>个人最佳 <b id="bestCps">0.0</b> CPS</span>
+            </header>
+            <div class="chart-wrap">
+              <canvas id="cpsChart" height="208" aria-label="每秒点击分布图"></canvas>
+              <p class="chart-empty" id="chartEmpty">完成一轮测试后生成图表。</p>
+            </div>
+          </article>
+
+          <article class="card history-card">
+            <header class="card-head">
+              <div>
+                <h2>历史成绩</h2>
+                <p>保留最近 6 次成绩，仅存储在本机浏览器。</p>
+              </div>
+              <button class="btn ghost small" id="clearCpsHistory" type="button">清空</button>
+            </header>
+            <ol class="score-list" id="scoreList">
+              <li class="empty">还没有成绩记录。</li>
+            </ol>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>KeyLab · 纯前端键盘检测工具</span>
+      <span>所有按键与点击数据仅在本地浏览器中处理，不会上传。</span>
+    </footer>
+  </div>
+
+  <script src="js/layout.js"></script>
+  <script src="js/keyboard.js"></script>
+  <script src="js/cps.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
