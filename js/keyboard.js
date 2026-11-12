@@ -1,5 +1,5 @@
 /* ==========================================================================
-   KeyLab · 键位检测
+   KeyboardTools · 键位检测
    ========================================================================== */
 
 (function () {
@@ -222,9 +222,10 @@
       peakPressed = Math.max(peakPressed, pressed.size);
       pressCount += 1;
 
-      if (!tested.has(code)) {
+      /* 仅统计布局内键位，避免多媒体键等未知 code 令覆盖率超过 100% */
+      if (node && !tested.has(code)) {
         tested.add(code);
-        node && node.classList.add("tested");
+        node.classList.add("tested");
       }
 
       history.unshift({
@@ -235,7 +236,7 @@
       if (history.length > 12) history.pop();
       renderLog();
 
-      window.KeyLabSound && window.KeyLabSound.play("key");
+      window.KeyboardToolsSound && window.KeyboardToolsSound.play("key");
     } else {
       pressCount += 1;
     }

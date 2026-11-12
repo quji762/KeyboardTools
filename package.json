@@ -1,20 +1,63 @@
 {
-  "name": "keylab-keyboard-tools",
+  "name": "keyboardtools",
   "version": "1.0.0",
   "private": true,
-  "description": "KeyLab 键盘检测工具：键位检测与鼠标连点（CPS）检测，纯静态、可离线运行。",
+  "description": "KeyboardTools 键盘检测桌面应用：键位检测与键位连点故障（Chatter）检测，基于 Electron。",
   "keywords": [
     "keyboard",
-    "key-test",
+    "keyboard-test",
+    "key-chatter",
     "keyboard-tester",
-    "cps",
-    "click-speed"
+    "electron"
   ],
   "license": "UNLICENSED",
+  "author": "KeyboardTools",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/quji762/KeyboardTools.git"
+  },
+  "homepage": "https://github.com/quji762/KeyboardTools",
+  "main": "electron/main.js",
   "scripts": {
-    "start": "python -m http.server 8080",
-    "preview": "python -m http.server 8080"
+    "start": "electron .",
+    "dev": "electron .",
+    "smoke": "electron . --smoke-test",
+    "dist": "electron-builder --win portable --x64",
+    "dist:dir": "electron-builder --win dir --x64"
   },
   "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "electron": "^45.3.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.keyboardtools.app",
+    "productName": "KeyboardTools",
+    "copyright": "Copyright © 2026 KeyboardTools",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "index.html",
+      "assets/**/*",
+      "js/**/*",
+      "electron/**/*",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "KeyboardTools-${version}-portable.${ext}"
+    }
+  }
 }

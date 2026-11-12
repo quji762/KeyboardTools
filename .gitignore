@@ -7,7 +7,11 @@ desktop.ini
 *.swp
 *.swo
 
+# 构建产物
+/dist/
+
 # 依赖与缓存
+.ruff_cache/
 node_modules/
 .cache/
 

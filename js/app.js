@@ -1,12 +1,12 @@
 /* ==========================================================================
-   KeyLab · 页面外壳：主题、按键音、标签页
+   KeyboardTools · 页面外壳：主题、按键音、标签页
    ========================================================================== */
 
 (function () {
   "use strict";
 
-  const THEME_KEY = "keylab.theme";
-  const SOUND_KEY = "keylab.sound";
+  const THEME_KEY = "keyboardtools.theme";
+  const SOUND_KEY = "keyboardtools.sound";
 
   const root = document.documentElement;
   const themeToggle = document.getElementById("themeToggle");
@@ -15,7 +15,7 @@
   const tabs = Array.from(document.querySelectorAll(".tab"));
   const panels = {
     keys: document.getElementById("panel-keys"),
-    cps: document.getElementById("panel-cps")
+    chatter: document.getElementById("panel-chatter")
   };
 
   /* ---------------- 主题 ---------------- */
@@ -36,7 +36,7 @@
     try {
       window.localStorage.setItem(THEME_KEY, theme);
     } catch (err) { /* ignore */ }
-    window.dispatchEvent(new CustomEvent("keylab:themechange", { detail: { theme } }));
+    window.dispatchEvent(new CustomEvent("keyboardtools:themechange", { detail: { theme } }));
   }
 
   themeToggle.addEventListener("click", () => {
@@ -54,7 +54,11 @@
       if (ctx) return ctx;
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return null;
-      ctx = new AudioCtx();
+      try {
+        ctx = new AudioCtx();
+      } catch (err) {
+        ctx = null;
+      }
       return ctx;
     }
 
@@ -62,24 +66,28 @@
       if (!enabled) return;
       const audio = ensureContext();
       if (!audio) return;
-      if (audio.state === "suspended") audio.resume();
+      try {
+        if (audio.state === "suspended") audio.resume();
 
-      const now = audio.currentTime;
-      const osc = audio.createOscillator();
-      const gain = audio.createGain();
-      const isClick = type === "click";
+        const now = audio.currentTime;
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+        const isClick = type === "click";
 
-      osc.type = isClick ? "square" : "triangle";
-      osc.frequency.setValueAtTime(isClick ? 920 : 560, now);
-      if (!isClick) osc.frequency.exponentialRampToValueAtTime(420, now + 0.035);
+        osc.type = isClick ? "square" : "triangle";
+        osc.frequency.setValueAtTime(isClick ? 920 : 560, now);
+        if (!isClick) osc.frequency.exponentialRampToValueAtTime(420, now + 0.035);
 
-      gain.gain.setValueAtTime(isClick ? 0.035 : 0.028, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + (isClick ? 0.045 : 0.06));
+        gain.gain.setValueAtTime(isClick ? 0.035 : 0.028, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + (isClick ? 0.045 : 0.06));
 
-      osc.connect(gain);
-      gain.connect(audio.destination);
-      osc.start(now);
-      osc.stop(now + 0.08);
+        osc.connect(gain);
+        gain.connect(audio.destination);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } catch (err) {
+        /* 音频设备不可用时静默降级，不影响检测功能 */
+      }
     }
 
     function setEnabled(value, silent) {
@@ -102,7 +110,7 @@
     };
   })();
 
-  window.KeyLabSound = Sound;
+  window.KeyboardToolsSound = Sound;
 
   try {
     Sound.setEnabled(window.localStorage.getItem(SOUND_KEY) === "on", true);
@@ -130,7 +138,7 @@
     try {
       window.history.replaceState(null, "", "#" + name);
     } catch (err) { /* ignore */ }
-    window.dispatchEvent(new CustomEvent("keylab:tabchange", { detail: { tab: name } }));
+    window.dispatchEvent(new CustomEvent("keyboardtools:tabchange", { detail: { tab: name } }));
   }
 
   tabs.forEach((tab) => {
@@ -140,11 +148,25 @@
     });
   });
 
-  const initialTab = window.location.hash.replace("#", "") === "cps" ? "cps" : "keys";
+  const initialHash = window.location.hash.replace("#", "");
+  const initialTab = initialHash === "chatter" || initialHash === "cps" ? "chatter" : "keys";
   applyTheme(readTheme());
   setTab(initialTab);
 
   window.addEventListener("hashchange", () => {
-    setTab(window.location.hash.replace("#", "") === "cps" ? "cps" : "keys");
+    const hash = window.location.hash.replace("#", "");
+    setTab(hash === "chatter" || hash === "cps" ? "chatter" : "keys");
   });
+
+  /* ---------------- 桌面端信息 ---------------- */
+
+  const appMeta = document.getElementById("appMeta");
+  if (appMeta && window.keyboardToolsDesktop && typeof window.keyboardToolsDesktop.getInfo === "function") {
+    window.keyboardToolsDesktop.getInfo().then((info) => {
+      appMeta.textContent = "KeyboardTools 桌面版 v" + info.version;
+      appMeta.title = "Electron " + info.electron + " · Chromium " + info.chrome;
+    }).catch(() => {
+      /* 浏览器预览或信息不可用时保留默认文案 */
+    });
+  }
 })();
