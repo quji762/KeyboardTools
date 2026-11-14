@@ -106,7 +106,7 @@ KeyboardTools/
 
 ## 开发与构建
 
-环境要求：Windows 10/11 x64、Node.js 20 及以上。
+环境要求：Windows 10/11 x64、Node.js 22 及以上。
 
 ```bash
 npm install          # 安装 Electron / electron-builder（仅开发依赖）

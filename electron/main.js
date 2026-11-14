@@ -16,6 +16,12 @@ const APP_TITLE = "KeyboardTools · 键盘检测工具";
 const isDev = !app.isPackaged;
 const isSmoke = process.argv.includes("--smoke-test");
 
+if (isSmoke) {
+  /* 自检窗口从不被用户聚焦，关闭 Windows 原生遮挡计算，
+     避免无头虚拟机上渲染节流导致 computed style 滞后 */
+  app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");
+}
+
 app.setName("KeyboardTools");
 app.setAppUserModelId(APP_ID);
 
@@ -126,7 +132,7 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, "..", "index.html"));
 
   mainWindow.once("ready-to-show", () => {
-    if (!isSmoke) mainWindow.show();
+    mainWindow.show();
   });
 
   mainWindow.on("resize", () => scheduleWindowStateSave(mainWindow));

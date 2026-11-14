@@ -115,7 +115,7 @@ KeyboardTools/
 
 ## Development
 
-Requirements: Windows 10 / 11 x64 and Node.js 20+.
+Requirements: Windows 10 / 11 x64 and Node.js 22+.
 
 ```bash
 npm install          # install Electron / electron-builder (devDependencies only)
