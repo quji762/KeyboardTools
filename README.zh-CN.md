@@ -111,7 +111,7 @@ KeyboardTools/
 ```bash
 npm install          # 安装 Electron / electron-builder（仅开发依赖）
 npm start            # 以桌面窗口启动开发版
-npm run smoke        # 无界面自检（24 项断言）
+npm run smoke        # 自动化自检，真实窗口内执行（24 项断言）
 npm run dist         # 构建全部 Windows 目标到 dist/：NSIS 安装版 + 便携版
 npm run dist:dir     # 构建未打包目录，便于手动验证
 ```

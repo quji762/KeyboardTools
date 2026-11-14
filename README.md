@@ -120,7 +120,7 @@ Requirements: Windows 10 / 11 x64 and Node.js 22+.
 ```bash
 npm install          # install Electron / electron-builder (devDependencies only)
 npm start            # run the app in a desktop window
-npm run smoke        # headless self-check (24 assertions)
+npm run smoke        # automated self-check in a real window (24 assertions)
 npm run dist         # build BOTH Windows targets into dist/: NSIS installer + portable exe
 npm run dist:dir     # build an unpacked directory for quick manual testing
 ```

@@ -4,7 +4,7 @@
  * KeyboardTools 桌面应用主进程
  * - 独立窗口承载现有键位检测 / 连点检测界面
  * - 单实例运行、窗口尺寸记忆、禁止外部导航、生产环境屏蔽刷新与开发者工具
- * - 支持 --smoke-test 无界面自检模式，供自动化验证与 exe 产物验收
+ * - 支持 --smoke-test 自动化自检模式，供 CI 与 exe 产物验收
  */
 
 const { app, BrowserWindow, Menu, ipcMain, screen } = require("electron");
