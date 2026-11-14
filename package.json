@@ -1,8 +1,8 @@
 {
   "name": "keyboardtools",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "KeyboardTools 键盘检测桌面应用：键位检测与键位连点故障（Chatter）检测，基于 Electron。",
+  "description": "KeyboardTools keyboard diagnostics for Windows: key test and key-chatter (double keystroke) detection, built with Electron.",
   "keywords": [
     "keyboard",
     "keyboard-test",
@@ -22,7 +22,7 @@
     "start": "electron .",
     "dev": "electron .",
     "smoke": "electron . --smoke-test",
-    "dist": "electron-builder --win portable --x64",
+    "dist": "electron-builder --win --x64",
     "dist:dir": "electron-builder --win dir --x64"
   },
   "dependencies": {},
@@ -50,13 +50,30 @@
     "win": {
       "target": [
         {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
           "target": "portable",
           "arch": [
             "x64"
           ]
         }
       ],
-      "icon": "build/icon.ico",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "KeyboardTools",
+      "artifactName": "KeyboardTools-${version}-setup.${ext}"
+    },
+    "portable": {
       "artifactName": "KeyboardTools-${version}-portable.${ext}"
     }
   }

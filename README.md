@@ -1,127 +1,158 @@
-# KeyboardTools · 键盘检测桌面应用
+<div align="center">
 
-KeyboardTools 是一个基于 Electron 的 Windows 桌面工具，用于检测键盘按键是否正常，以及排查按键“连点 / 抖动”（Chatter）故障。应用完全在本机运行，不联网、不上传数据。
+# KeyboardTools
 
-当前版本：**v1.0.0**
+**Keyboard diagnostics for Windows — test every key, catch key chatter.**
 
-项目仓库：<https://github.com/quji762/KeyboardTools>
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-## 直接运行
+[![Release](https://img.shields.io/github/v/release/quji762/KeyboardTools?style=flat-square)](https://github.com/quji762/KeyboardTools/releases/latest)
+[![Release build](https://github.com/quji762/KeyboardTools/actions/workflows/release.yml/badge.svg)](https://github.com/quji762/KeyboardTools/actions/workflows/release.yml)
+[![CI](https://github.com/quji762/KeyboardTools/actions/workflows/ci.yml/badge.svg)](https://github.com/quji762/KeyboardTools/actions/workflows/ci.yml)
 
-双击 `dist/KeyboardTools-1.0.0-portable.exe` 即可启动，无需安装。
+</div>
 
-- 便携版首次启动会把运行时解压到系统临时目录，可能需要几秒钟，请耐心等待。
-- 该 exe 未做代码签名，Windows SmartScreen 可能提示“未知发布者”。确认文件来源可信后，选择“更多信息 → 仍要运行”。
-- 应用为单实例运行，重复启动会聚焦已打开的窗口。
+---
 
-## 功能
+**KeyboardTools** is an Electron-based desktop utility for Windows that helps you:
 
-### 键位检测
+- verify that **every key on your keyboard actually works**, and
+- diagnose **key chatter** — a worn, oxidized or dirty switch registering a single physical press as multiple keystrokes.
 
-- 完整 ANSI 104 键布局：功能键区、主键区、编辑键区、方向键与数字小键盘。
-- 基于物理键位 `KeyboardEvent.code` 识别，与输入法、系统键盘布局无关。
-- 按下实时高亮，松开后保留“已检测”标记，便于排查失灵按键。
-- 统计已检测键位、覆盖率、同时按下键数与峰值（可粗测无冲）、累计按键次数。
-- 按键详情展示 `event.key`、`event.code`、`keyCode`、修饰键位置、长按重复状态与触发时间。
-- 最近 12 次按键记录，支持一键重置。
+Everything runs locally: the app never goes online, and no keystroke data ever leaves your machine.
 
-### 键位连点故障检测（Chatter）
+Current version: **v1.1.0** — see [CHANGELOG.md](CHANGELOG.md).
 
-用于判断某个按键是否会在**一次物理按压**中产生多次触发，常见于机械轴抖动、触点氧化或固件问题。
+## Download
 
-- 判定阈值可选 **20 ms / 30 ms / 50 ms**，默认 30 ms，设置会保存在本机。
-- 自动识别两类异常：
-  1. **松开后回弹**：同一按键 `keyup` 后，在阈值内又出现新的 `keydown`；
-  2. **未松开重复触发**：按键仍处于按下状态时，又收到非 `repeat` 的 `keydown`。
-- 系统长按产生的自动重复（`event.repeat`）不计入，按住不放不会刷出异常。
-- 展示当前按键、按下 / 释放状态、当前间隔、本键异常次数。
-- 统计已监测键位与覆盖率、异常总次数、异常键位数量、最短异常间隔。
-- “异常键位”按次数排序，显示每个键的最短间隔与最后异常时间；“异常事件”保留最近 12 条明细。
-- 支持暂停 / 继续监测、清空记录；切换判定阈值会清空旧记录，避免不同标准混用。
-- 窗口失焦、最小化或切换标签页时会重置按下状态，避免丢失 `keyup` 造成误报。
+Grab the latest build from [**Releases**](https://github.com/quji762/KeyboardTools/releases/latest):
 
-## 使用建议
+| File | Type | Notes |
+| --- | --- | --- |
+| `KeyboardTools-<version>-setup.exe` | Installer | Per-user NSIS install, choose the install folder, desktop / Start-menu shortcuts, uninstaller included |
+| `KeyboardTools-<version>-portable.exe` | Portable | Single executable, nothing to install; the first launch unpacks the runtime and may take a few seconds |
 
-### 检测按键连点
+Both builds are unsigned, so Windows SmartScreen may warn about an "unknown publisher". If you downloaded the file from this repository's Releases page, choose **More info → Run anyway**.
 
-1. 切换到「连点故障」标签。
-2. 选择判定阈值。一般先用默认 30 ms；怀疑严重抖动可用 50 ms，想更严格可用 20 ms。
-3. 正常逐个敲击按键，或反复敲击怀疑有问题的键。
-4. 若“异常键位”中出现该键，且“异常事件”的间隔明显小于人手正常连按速度，说明该键存在抖动 / 连点故障。
-5. 换用另一把键盘对比，或清洁 / 更换轴体后复测。
+- Requirements: Windows 10 / 11, x64.
+- Single instance: launching it again simply focuses the already-running window.
 
-> 说明：连点检测监测的是实际产生的键盘事件。操作系统级快捷键（如 `Win`、`Alt+Tab`）可能被系统提前拦截，属正常现象。
+## Features
 
-### 测试键盘无冲
+### Key test
 
-在「键位检测」中同时按住多个键，观察“同时按下”的峰值。该数值只反映浏览器 / Electron 实际收到的按键事件，不能替代硬件级 NKRO 测试。
+- Complete ANSI 104-key layout: function row, main cluster, navigation cluster, arrow keys and numpad.
+- Keys are identified by physical position (`KeyboardEvent.code`) — unaffected by the OS keyboard layout or IME.
+- Keys highlight in real time while held and keep a "tested" marker afterwards, so dead keys stand out.
+- Live stats: tested keys and coverage, currently held keys plus session peak (a rough NKRO check), total keystrokes.
+- Per-key detail: `event.key`, `event.code`, `keyCode`, modifier side, long-press repeat state and trigger time.
+- Last 12 keystrokes, with a one-click reset.
 
-## 数据与隐私
+### Chatter test
 
-- 应用不发起任何网络请求，按键数据只在内存中处理。
-- 判定阈值保存在本机浏览器存储；窗口位置与尺寸保存在 `%APPDATA%\KeyboardTools\window-state.json`。
-- 清除应用数据或删除该目录即可恢复默认设置。
+Detects keys that fire more than once per physical press — typical for worn or oxidized switches and firmware issues.
 
-## 目录结构
+- Judgment threshold: **20 ms / 30 ms / 50 ms** (default 30 ms), persisted locally.
+- Two fault patterns are recognized:
+  1. **Bounce after release** — the same key produces a new `keydown` within the threshold after its `keyup`;
+  2. **Repeat before release** — a fresh (non-`repeat`) `keydown` arrives while the key is still held.
+- OS auto-repeat from long presses (`event.repeat`) is excluded, so holding a key never flags a fault.
+- Live readout: current key, press / release state, current gap and this key's fault count.
+- Stats: monitored keys and coverage, total faults, number of faulty keys, shortest fault gap.
+- "Faulty keys" is sorted by fault count and shows each key's shortest gap and last fault time; "fault events" keeps the latest 12 entries.
+- Pause / resume monitoring and clear records; switching thresholds clears old records to avoid mixing standards.
+- Pressed states reset on window blur, minimize or tab switch, so a lost `keyup` can never cause a false positive.
+
+## Usage tips
+
+### Diagnosing a chattering key
+
+1. Open the **Chatter** tab and pick a threshold — start with the default 30 ms; use 50 ms to hunt severe jitter, 20 ms to be strict.
+2. Tap keys normally, or repeatedly hit the key you suspect.
+3. If the key shows up under "Faulty keys" and its event gaps are far below human repeat speed, the switch is chattering.
+4. Compare with another keyboard, or clean / replace the switch and retest.
+
+### Rollover (NKRO) check
+
+Hold as many keys as you can on the **Key test** tab and watch the "held keys" peak. The number only reflects what the browser / Electron actually receives — it is not a substitute for hardware-level NKRO testing.
+
+> OS-level shortcuts (Win, Alt+Tab, …) are intercepted by the operating system before the app ever sees those keys.
+
+## Privacy & data
+
+- The app makes no network requests; keystrokes are processed in memory only.
+- Chatter threshold, theme and key-sound preferences are stored in the renderer's local storage.
+- Window size and position are stored in `%APPDATA%\KeyboardTools\window-state.json`.
+- Deleting that folder (or clearing the app's data) restores all defaults.
+
+## Project structure
 
 ```text
 KeyboardTools/
-├── index.html              # 渲染层页面（键位检测 + 连点故障检测）
+├── index.html              # Renderer page (key test + chatter test)
 ├── assets/
-│   └── styles.css          # 主题、键盘、故障面板与响应式样式
+│   └── styles.css          # Theme, keyboard, fault panel and responsive styles
 ├── js/
-│   ├── layout.js           # ANSI 104 键位布局数据
-│   ├── keyboard.js         # 键位检测：高亮、统计、按键记录
-│   ├── chatter.js          # 连点故障：判定、统计、异常列表
-│   └── app.js              # 标签页、主题、按键音、桌面信息
+│   ├── layout.js           # ANSI 104-key layout data
+│   ├── keyboard.js         # Key test: highlight, stats, key log
+│   ├── chatter.js          # Chatter test: detection, stats, fault lists
+│   └── app.js              # Tabs, theme, key sound, desktop info
 ├── electron/
-│   ├── main.js             # 主进程：窗口、单实例、导航与快捷键防护
-│   ├── preload.js          # 预加载：仅暴露只读应用信息
-│   └── smoke.js            # 无界面自动化自检
+│   ├── main.js             # Main process: window, single instance, navigation guard
+│   ├── preload.js          # Preload: read-only app-info bridge only
+│   └── smoke.js            # Headless self-check (--smoke-test)
 ├── scripts/
-│   └── generate_icon.py    # 生成应用图标（Pillow）
-├── build/
-│   ├── icon.ico
-│   └── icon.png
-├── dist/                   # 构建产物
-│   └── KeyboardTools-1.0.0-portable.exe
+│   └── generate_icon.py    # App icon generator (Pillow)
+├── build/                  # Icons
+├── dist/                   # Build output (git-ignored)
+├── .github/
+│   └── workflows/          # CI and release pipelines
 ├── package.json
 ├── CHANGELOG.md
-├── .gitignore
-└── README.md
+├── README.md               # This file (primary)
+└── README.zh-CN.md         # Chinese version
 ```
 
-## 开发与构建
+## Development
 
-环境要求：Windows 10/11 x64、Node.js 20 及以上。
+Requirements: Windows 10 / 11 x64 and Node.js 20+.
 
 ```bash
-npm install          # 安装 Electron / electron-builder
-npm start            # 以桌面窗口启动开发版
-npm run smoke        # 无界面自检（24 项断言）
-npm run dist         # 构建便携版 exe 到 dist/
+npm install          # install Electron / electron-builder (devDependencies only)
+npm start            # run the app in a desktop window
+npm run smoke        # headless self-check (24 assertions)
+npm run dist         # build BOTH Windows targets into dist/: NSIS installer + portable exe
+npm run dist:dir     # build an unpacked directory for quick manual testing
 ```
 
-`package.json` 中 `dependencies` 为空；Electron 与 electron-builder 仅为开发依赖，运行时不依赖第三方库。
+The runtime has zero third-party dependencies — Electron and electron-builder are devDependencies only.
 
-### 自检覆盖范围
+### Smoke test coverage
 
-`npm run smoke` 在真实 Electron 渲染进程中验证：
+`npm run smoke` runs 24 assertions in a real Electron renderer:
 
-- 104 键布局完整渲染；
-- 正常敲击不误报、回弹与未松开重复触发可识别；
-- 长按 `repeat` 排除、不同按键互不影响；
-- 阈值切换、暂停 / 恢复、清空记录、失焦保护；
-- 键位检测统计、主题切换、桌面桥接与版本信息；
-- 通过调试协议注入真实按键事件，验证输入链路。
+- the 104-key layout renders completely;
+- normal tapping never false-positives; bounce and held-key repeats are detected;
+- long-press `repeat` events are excluded; different keys do not interfere;
+- threshold switching, pause / resume, record clearing and blur protection;
+- key-test stats, theme switching, desktop bridge and version info;
+- real key events injected through the DevTools protocol to verify the actual input path.
 
-## 已知边界
+The same suite runs in CI, and the packaged executable is validated with `KeyboardTools.exe --smoke-test`.
 
-- 仅在应用窗口获得焦点时检测按键；不安装全局键盘钩子，不会记录其他程序中的输入。
-- 非 ANSI 键盘的额外键位（如 JIS 专用键、多媒体键）不会被计入 104 键覆盖率和故障判定。
-- 判定阈值只是辅助标准：人手极快地重复按同一键（通常远慢于 30 ms）不会被判为故障，但极端输入设备或宏可能产生边界结果。
-- 便携版每次启动会解压运行时，启动速度略慢于安装版。
+## Releasing (maintainers)
 
-## 许可
+1. Update `CHANGELOG.md` and bump `version` in `package.json` (keep `package-lock.json` in sync).
+2. Commit, then tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. GitHub Actions (`release.yml`) runs the smoke test, builds the installer and portable executable on Windows, and publishes a GitHub Release with both artifacts attached.
 
-仅供个人学习与日常检测使用。
+## Known limitations
+
+- Keys are only detected while the app window has focus; no global hooks are installed, so input in other programs is never recorded.
+- Extra keys found on non-ANSI keyboards (JIS-specific or multimedia keys) are not counted in the 104-key coverage or in fault detection.
+- The threshold is a guideline: human re-presses (almost always slower than 30 ms) never count as faults, but extreme input devices or macros may produce borderline results.
+- Builds are not code-signed, so SmartScreen shows a warning on first run.
+
+## License
+
+For personal learning and everyday diagnostics use.

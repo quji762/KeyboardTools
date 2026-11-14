@@ -1,46 +1,72 @@
-# 变更记录
+# Changelog
 
-## v1.0.0 — 首个正式版
+All notable changes to KeyboardTools are documented in this file.
 
-### 桌面应用
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows [Semantic Versioning](https://semver.org/).
 
-- 基于 Electron 的独立 Windows 桌面窗口，可直接运行便携版 exe，无需安装。
-- 单实例运行，窗口位置与尺寸记忆，多显示器可见性校验。
-- 生产环境屏蔽页面刷新与开发者工具快捷键，阻止外部导航与弹窗；支持 F11 全屏。
-- 页脚显示应用版本，悬停可查看 Electron / Chromium 版本。
+## [1.1.0] - 2026-11-14
 
-### 键位检测
+### Added
 
-- 完整 ANSI 104 键布局，按物理键位 `KeyboardEvent.code` 识别，不受输入法与键盘布局影响。
-- 实时高亮并按键保留“已检测”标记，统计覆盖率、同时按下峰值、累计按键次数。
-- 展示 `event.key`、`event.code`、`keyCode`、修饰键位置、长按重复状态与触发时间。
-- 保留最近 12 次按键记录，支持一键重置。
+- Windows **installer** build (NSIS): per-user install with a selectable installation directory, desktop / Start-menu shortcuts and an uninstaller, shipped alongside the existing portable executable. `npm run dist` now builds both targets — `KeyboardTools-<version>-setup.exe` and `KeyboardTools-<version>-portable.exe`.
+- GitHub Actions pipelines:
+  - `release.yml` — on `v*` tags (or manual dispatch): smoke test → build the installer and portable executable on Windows → publish a GitHub Release with both artifacts attached;
+  - `ci.yml` — smoke test on every push to `main` and on pull requests.
+- Bilingual documentation: English `README.md` as the primary page with a Chinese version at `README.zh-CN.md`; this changelog now follows the Keep a Changelog format.
 
-### 键位连点故障检测（Chatter）
+### Fixed
 
-- 支持 20 ms / 30 ms / 50 ms 判定阈值，默认 30 ms，设置保存在本机。
-- 识别“松开后回弹”与“未松开重复触发”两类异常，排除系统长按 `event.repeat`。
-- 展示已监测键位、异常总次数、异常键位数与最短异常间隔。
-- 提供异常键位排序列表、最近 12 条异常事件、当前按键与间隔。
-- 支持暂停 / 继续监测、清空记录；切换阈值自动清空旧记录。
-- 窗口失焦、最小化或切换标签页时重置按下状态，避免丢失 `keyup` 造成误报。
+- Chatter test: clicking the already-selected threshold button no longer clears all recorded data. Records are reset only when the threshold actually changes (the reset-on-change behavior is unchanged).
+- Cleaned up dead code left over from the 1.0 rename:
+  - removed the never-applied `unknown` / `is-unknown` CSS classes and their reset logic in the key test;
+  - removed CPS-tester-era styles (`.cps-card`, `.score-list`) that no longer had matching elements;
+  - removed the unused `.tab-indicator` element and its style;
+  - removed an empty `try/catch` block in the chatter panel initialization;
+  - removed the `keyboardtools:themechange` event, which had no listener;
+  - removed an unused parameter of the chatter fault recorder.
+- Removed a theme-button CSS rule that could never match (its selector required the element to be a descendant of itself; the intended styling was already covered by the generic pressed-state rule).
 
-### 其他
+## [1.0.0] - 2026-11-13
 
-- 深色 / 浅色主题，可选按键音（默认关闭），响应式布局。
-- 所有数据仅在本机处理，不发起网络请求。
+First stable release. The project was renamed from KeyLab to KeyboardTools and reworked from a CPS click-speed tester into a keyboard diagnostics tool.
 
-### 修复
+### Desktop app
 
-- 修复 `hidden` 属性被组件 `display` 覆盖导致内容遮挡的问题。
-- 修复非布局按键被计入覆盖率、覆盖率可能超过 100% 的问题。
-- 修复当前间隔在新按键上残留旧数值、异常时间显示错误的问题。
-- 修复音频设备异常可能中断按键处理的问题。
-- 修复本地存储不可用时初始化中断的问题。
-- 修复主进程导航守卫误拦截同文件锚点的问题。
+- Standalone Electron window hosting the key test / chatter test UI, distributed as a portable executable.
+- Single-instance running; window size and position are remembered across sessions with multi-monitor visibility checks.
+- Page refresh and DevTools shortcuts are blocked in production builds; external navigation and pop-ups are prevented; F11 fullscreen is supported.
+- The footer shows the app version; hovering reveals the Electron / Chromium versions.
 
-### 验证
+### Key test
 
-- Electron 开发版与打包便携版均通过 24 项自动化自检。
-- 覆盖正常敲击、回弹、未松开重复触发、长按排除、阈值切换、暂停、失焦、键位检测与真实输入通道。
-- 320–1440 px 多宽度布局检查无横向溢出。
+- Complete ANSI 104-key layout identified by physical `KeyboardEvent.code`, independent of OS keyboard layout and IME.
+- Real-time highlighting with persistent "tested" markers; stats for coverage, held-key peak and total keystrokes.
+- Per-key detail: `event.key`, `event.code`, `keyCode`, modifier side, long-press repeat state and trigger time.
+- Last 12 keystrokes with a one-click reset.
+
+### Chatter test
+
+- 20 ms / 30 ms / 50 ms judgment thresholds (default 30 ms), persisted locally.
+- Detects bounce-after-release and repeat-before-release patterns; system auto-repeat (`event.repeat`) is excluded.
+- Stats for monitored keys, total faults, faulty key count and shortest fault gap.
+- Sorted faulty-key list, the latest 12 fault events, pause / resume and clear-records controls; switching thresholds clears old records.
+- Pressed states reset on window blur, minimize or tab switch to avoid lost-`keyup` false positives.
+
+### Other
+
+- Dark / light theme, optional key sound (off by default), responsive layout.
+- All data is processed locally; the app never makes network requests.
+
+### Fixed
+
+- Prevented the `hidden` attribute from being overridden by component `display` rules.
+- Non-layout keys no longer inflate key coverage; coverage can no longer exceed 100%.
+- The current-gap readout no longer carries stale values across different keys; fault timestamps display correctly.
+- Audio device failures no longer interrupt key handling.
+- Unavailable local storage no longer breaks initialization.
+- The main-process navigation guard no longer blocks same-file anchor jumps.
+
+### Verification
+
+- 24 automated smoke assertions pass on the dev build and the packaged executable.
+- Layout checked for horizontal overflow at 320–1440 px widths.
