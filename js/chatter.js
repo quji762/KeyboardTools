@@ -147,7 +147,7 @@
 
   /* ---------------- 故障记录 ---------------- */
 
-  function registerIssue(rec, now, gap, type) {
+  function registerIssue(rec, gap, type) {
     const gapMs = Math.max(0, Math.round(gap));
     rec.issues += 1;
     rec.minGap = Math.min(rec.minGap, gapMs);
@@ -297,9 +297,9 @@
     }
 
     if (rec.down) {
-      registerIssue(rec, now, now - rec.lastDown, "down-again");
+      registerIssue(rec, now - rec.lastDown, "down-again");
     } else if (rec.lastUp && now - rec.lastUp <= threshold) {
-      registerIssue(rec, now, now - rec.lastUp, "bounce");
+      registerIssue(rec, now - rec.lastUp, "bounce");
     }
 
     const gap = rec.lastUp ? now - rec.lastUp : null;
@@ -350,6 +350,7 @@
 
   function applyThreshold(value) {
     if (!THRESHOLDS.includes(value)) return;
+    if (value === threshold) return;
     threshold = value;
     saveThreshold();
     Array.from(el.thresholdSeg.querySelectorAll(".seg-btn")).forEach((btn) => {
@@ -392,9 +393,6 @@
   });
 
   /* ---------------- 初始化 ---------------- */
-
-  try {
-  } catch (err) { /* ignore */ }
 
   el.total.textContent = String(totalKeys);
   Array.from(el.thresholdSeg.querySelectorAll(".seg-btn")).forEach((btn) => {

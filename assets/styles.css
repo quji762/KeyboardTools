@@ -174,8 +174,6 @@ code {
   outline-offset: 2px;
 }
 
-[data-theme="dark"] .icon-btn[aria-pressed="true"] #themeToggle { color: var(--accent-strong); }
-
 /* ---------- 标签页 ---------- */
 
 .tabs {
@@ -212,8 +210,6 @@ code {
   background: linear-gradient(135deg, rgba(45, 212, 191, 0.15), rgba(56, 189, 248, 0.1));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
-
-.tab-indicator { display: none; }
 
 [data-theme="light"] .tab.is-active { color: #0f766e; }
 
@@ -478,13 +474,6 @@ code {
   100% { box-shadow: var(--key-shadow); }
 }
 
-/* 未知键提示 */
-.key.unknown {
-  border-color: rgba(56, 189, 248, 0.5);
-  background: linear-gradient(180deg, #1e3a50 0%, #172c3d 100%);
-  color: #bae6fd;
-}
-
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -588,8 +577,7 @@ code {
   color: var(--text);
 }
 .key-log .log-code { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-left: auto; }
-.key-log li.empty,
-.score-list li.empty {
+.key-log li.empty {
   justify-content: center;
   color: var(--muted);
   background: transparent;
@@ -600,8 +588,6 @@ code {
 }
 
 /* ---------- 连点检测 ---------- */
-
-.cps-card { padding-bottom: 18px; }
 
 .seg {
   display: inline-flex;
@@ -929,4 +915,3 @@ code {
 }
 /* 声音关闭时弱化声波图标 */
 .icon-btn[aria-pressed="false"] .sound-wave { opacity: 0.28; }
-.score-list .score-meta { line-height: 1.35; }

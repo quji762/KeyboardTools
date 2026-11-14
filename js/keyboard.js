@@ -277,10 +277,9 @@
     peakPressed = 0;
     clearPressed();
     keyIndex.forEach((node) => {
-      node.classList.remove("tested", "active", "flash", "unknown");
+      node.classList.remove("tested", "active", "flash");
     });
     el.display.classList.remove("is-live");
-    el.displayLabel.classList.remove("is-unknown");
     el.displayLabel.textContent = "—";
     el.displaySub.textContent = "等待按键";
     el.key.textContent = "—";

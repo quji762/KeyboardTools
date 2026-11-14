@@ -36,7 +36,6 @@
     try {
       window.localStorage.setItem(THEME_KEY, theme);
     } catch (err) { /* ignore */ }
-    window.dispatchEvent(new CustomEvent("keyboardtools:themechange", { detail: { theme } }));
   }
 
   themeToggle.addEventListener("click", () => {
