@@ -264,13 +264,33 @@ module.exports = function runSmoke({ app, win, reportPath }) {
       byId("resetKeys").click();
 
       const bodyBg = getComputedStyle(document.body).backgroundColor;
-      byId("themeToggle").click();
+      const themeDebug = { bodyBg };
+      try {
+        const btn = byId("themeToggle");
+        themeDebug.btnFound = Boolean(btn);
+        btn.click();
+        themeDebug.themeSync = document.documentElement.dataset.theme;
+        themeDebug.bgSync = getComputedStyle(document.body).backgroundColor;
+        themeDebug.ariaSync = btn.getAttribute("aria-pressed");
+        themeDebug.labelSync = btn.querySelector(".theme-label").textContent;
+        themeDebug.hasFocus = document.hasFocus();
+        themeDebug.hidden = document.hidden;
+        try {
+          themeDebug.ls = localStorage.getItem("keyboardtools.theme");
+        } catch (error) {
+          themeDebug.ls = "ERR " + error.message;
+        }
+      } catch (error) {
+        themeDebug.error = error.message;
+      }
       await sleep(60);
+      themeDebug.theme60 = document.documentElement.dataset.theme;
+      themeDebug.bg60 = getComputedStyle(document.body).backgroundColor;
       const light = {
-        theme: document.documentElement.dataset.theme,
-        bg: getComputedStyle(document.body).backgroundColor
+        theme: themeDebug.theme60,
+        bg: themeDebug.bg60
       };
-      record("浅色主题生效", light.theme === "light" && light.bg !== bodyBg, light.bg);
+      record("浅色主题生效", light.theme === "light" && light.bg !== bodyBg, JSON.stringify(themeDebug));
       byId("themeToggle").click();
       await sleep(40);
       record("恢复深色主题", document.documentElement.dataset.theme === "dark");
