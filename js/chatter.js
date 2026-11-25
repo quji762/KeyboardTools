@@ -296,13 +296,14 @@
       records.set(code, rec);
     }
 
+    let gap = rec.lastUp ? now - rec.lastUp : null;
     if (rec.down) {
-      registerIssue(rec, now - rec.lastDown, "down-again");
+      gap = now - rec.lastDown;
+      registerIssue(rec, gap, "down-again");
     } else if (rec.lastUp && now - rec.lastUp <= threshold) {
-      registerIssue(rec, now - rec.lastUp, "bounce");
+      registerIssue(rec, gap, "bounce");
     }
 
-    const gap = rec.lastUp ? now - rec.lastUp : null;
     rec.down = true;
     rec.lastDown = now;
 

@@ -110,7 +110,8 @@ module.exports = function runSmoke({ app, win, reportPath }) {
         faultRows: document.querySelectorAll("#faultKeyList li.fault-item").length,
         eventRows: document.querySelectorAll("#faultEventList li.fault-event").length,
         firstEvent: document.querySelector("#faultEventList li.fault-event .event-detail strong")?.textContent || "",
-        firstGap: document.querySelector("#faultEventList li.fault-event .event-gap")?.textContent || ""
+        firstGap: document.querySelector("#faultEventList li.fault-event .event-gap")?.textContent || "",
+        gap: byId("currentGap").textContent
       });
       const reset = () => byId("resetChatter").click();
       const setTheme = (desired) => {
@@ -195,7 +196,8 @@ module.exports = function runSmoke({ app, win, reportPath }) {
       await sleep(40);
       const downAgain = stats();
       record("未松开重复触发被识别",
-        downAgain.count === "1" && downAgain.firstEvent === "未松开重复触发" && downAgain.faultRows === 1,
+        downAgain.count === "1" && downAgain.firstEvent === "未松开重复触发" && downAgain.faultRows === 1 &&
+          downAgain.gap !== "—" && downAgain.firstGap === downAgain.gap + " ms",
         JSON.stringify(downAgain));
 
       reset();
