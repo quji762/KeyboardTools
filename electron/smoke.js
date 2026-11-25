@@ -356,7 +356,18 @@ module.exports = function runSmoke({ app, win, reportPath }) {
       };
 
       await dispatchTrustedKey(debuggerApi, "F5", "F5", 116);
-      await dispatchTrustedKey(debuggerApi, "F11", "F11", 122);
+
+      const f11 = { key: "F11", code: "F11", windowsVirtualKeyCode: 122, nativeVirtualKeyCode: 122 };
+      await debuggerApi.sendCommand("Input.dispatchKeyEvent", Object.assign({ type: "rawKeyDown" }, f11));
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      const held = await contents.executeJavaScript(
+        "(() => ({ active: document.querySelector('.key[data-code=\"F11\"]').classList.contains('active')," +
+        " tested: document.querySelector('.key[data-code=\"F11\"]').classList.contains('tested') }))()",
+        true
+      );
+      await debuggerApi.sendCommand("Input.dispatchKeyEvent", Object.assign({ type: "keyUp" }, f11));
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
       await dispatchTrustedKey(debuggerApi, "F12", "F12", 123);
       await new Promise((resolve) => setTimeout(resolve, 250));
       if (win.isFullScreen()) win.setFullScreen(false);
@@ -365,13 +376,17 @@ module.exports = function runSmoke({ app, win, reportPath }) {
         "(() => { const tested = (code) => document.querySelector('.key[data-code=\"' + code + '\"]').classList.contains('tested');" +
         " return { f5: tested('F5'), f11: tested('F11'), f12: tested('F12')," +
         " active: document.querySelectorAll('.key.active').length," +
+        " stuck: [...document.querySelectorAll('.key.active')].map((n) => n.dataset.code)," +
         " count: document.getElementById('statTested').textContent }; })()",
         true
       );
+      fnKeys.f11HeldActive = held.active;
+      fnKeys.f11HeldTested = held.tested;
 
       const functionKeys = {
         name: "拦截快捷键后功能键仍可检测",
-        pass: fnKeys.f5 === true && fnKeys.f11 === true && fnKeys.f12 === true && fnKeys.active === 0,
+        pass: fnKeys.f5 === true && fnKeys.f11 === true && fnKeys.f12 === true &&
+          fnKeys.active === 0 && held.active === true && held.tested === true,
         detail: JSON.stringify(fnKeys)
       };
 

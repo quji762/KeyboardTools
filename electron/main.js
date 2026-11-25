@@ -106,7 +106,6 @@ function scheduleWindowStateSave(win) {
 
 function isForwardedFunctionKey(input) {
   const key = input.key || "";
-  if (key === "F11") return true;
   return !isDev && (key === "F5" || key === "F12");
 }
 
@@ -200,25 +199,26 @@ function createWindow() {
     const isKeyDown = input.type === "keyDown";
     const isKeyUp = input.type === "keyUp";
 
-    /* 拦截 F11（正式版还有 F5/F12）时，页面收不到按键；
-       按下和松开都转发给渲染层，避免异步通知与原生 keyup 乱序。
-       切换全屏会吞掉 F11 的原生 keyup，因此在 keydown 后补发一次松开。 */
+    /* 正式版拦截的 F5/F12 转发给渲染层记账。
+       F11 不 preventDefault，页面能收到原生按下/松开以保持按下态；
+       全屏在松开后异步切换，避免挡住 keyup。长按自动重复不切换全屏。 */
     if (isForwardedFunctionKey(input) && (isKeyDown || isKeyUp)) {
       event.preventDefault();
       notifyInterceptedKey(mainWindow, input);
-      if (isKeyDown && key === "F11") {
-        notifyInterceptedKey(mainWindow, Object.assign({}, input, { type: "keyUp", isAutoRepeat: false }));
-      }
+    }
+
+    if (isKeyUp && key === "F11" && !input.isAutoRepeat) {
+      setImmediate(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.setFullScreen(!mainWindow.isFullScreen());
+        }
+      });
+      return;
     }
 
     if (!isKeyDown) return;
 
-    if (key === "F11") {
-      if (!input.isAutoRepeat) {
-        mainWindow.setFullScreen(!mainWindow.isFullScreen());
-      }
-      return;
-    }
+    if (key === "F11") return;
 
     if (key === "Escape" && mainWindow.isFullScreen()) {
       mainWindow.setFullScreen(false);
