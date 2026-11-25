@@ -214,7 +214,9 @@ function createWindow() {
     if (!isKeyDown) return;
 
     if (key === "F11") {
-      mainWindow.setFullScreen(!mainWindow.isFullScreen());
+      if (!input.isAutoRepeat) {
+        mainWindow.setFullScreen(!mainWindow.isFullScreen());
+      }
       return;
     }
 
