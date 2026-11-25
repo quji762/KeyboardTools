@@ -480,6 +480,23 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
       await sendKey(debuggerApi, "keyUp", "F11", "F11", 122);
       await wait(300);
       detail.afterRelease = calls.slice();
+      if (win.isFullScreen()) {
+        original.call(win, false);
+        await wait(300);
+      }
+
+      calls.length = 0;
+      for (const modifiers of [2, 1, 8]) {
+        await sendKey(debuggerApi, "rawKeyDown", "F11", "F11", 122, modifiers);
+        await sendKey(debuggerApi, "keyUp", "F11", "F11", 122, modifiers);
+      }
+      await wait(300);
+      detail.modifiedF11 = calls.length;
+
+      calls.length = 0;
+      await sendKey(debuggerApi, "keyUp", "F11", "F11", 122);
+      await wait(300);
+      detail.orphanKeyUp = calls.length;
     } finally {
       win.setFullScreen = original;
       if (win.isFullScreen()) {
@@ -489,7 +506,8 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
     }
     return {
       name: "F11 全屏只在松开时切换一次",
-      pass: detail.whileHeld === 0 && detail.afterRelease.length === 1 && detail.afterRelease[0] === true,
+      pass: detail.whileHeld === 0 && detail.afterRelease.length === 1 && detail.afterRelease[0] === true &&
+        detail.modifiedF11 === 0 && detail.orphanKeyUp === 0,
       detail: JSON.stringify(detail)
     };
   }

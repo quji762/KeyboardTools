@@ -43,6 +43,7 @@ if (isSmoke) {
 
 let mainWindow = null;
 let saveTimer = null;
+let f11Armed = false;
 
 function getArgValue(prefix) {
   const hit = process.argv.find((arg) => arg.startsWith(prefix + "="));
@@ -154,6 +155,9 @@ function createWindow() {
   mainWindow.on("resize", () => scheduleWindowStateSave(mainWindow));
   mainWindow.on("move", () => scheduleWindowStateSave(mainWindow));
   mainWindow.on("close", () => writeWindowState(mainWindow));
+  mainWindow.on("blur", () => {
+    f11Armed = false;
+  });
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -183,18 +187,26 @@ function createWindow() {
     /* 不对任何按键 preventDefault：在这里拦下 keyDown 会让 Chromium 丢弃随后的 keyUp，
        页面上的键会一直处于按下状态。应用菜单已移除、正式版 devTools 关闭，
        F5 / Ctrl+R / F12 / Ctrl+Shift+I 本身就没有刷新或打开开发者工具的效果。 */
-    if (isKeyUp && key === "F11" && !input.isAutoRepeat) {
-      setImmediate(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.setFullScreen(!mainWindow.isFullScreen());
+
+    /* F11：只有本窗口收到过一次不带修饰键的按下，才在松开时切换全屏；
+       长按自动重复、Ctrl/Alt/Shift/Win+F11 以及没有对应按下的松开都不切换 */
+    if (key === "F11") {
+      if (isKeyDown) {
+        if (!input.isAutoRepeat) {
+          f11Armed = !(input.control || input.alt || input.shift || input.meta);
         }
-      });
+      } else if (isKeyUp && f11Armed) {
+        f11Armed = false;
+        setImmediate(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setFullScreen(!mainWindow.isFullScreen());
+          }
+        });
+      }
       return;
     }
 
     if (!isKeyDown) return;
-
-    if (key === "F11") return;
 
     if (key === "Escape" && mainWindow.isFullScreen()) {
       mainWindow.setFullScreen(false);
