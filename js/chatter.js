@@ -173,7 +173,7 @@
   }
 
   function formatTime(date) {
-    const pad = (n) => String(n).padStart(2, "0");
+    const pad = (n, len) => String(n).padStart(len || 2, "0");
     return pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" +
       pad(date.getSeconds()) + "." + pad(date.getMilliseconds(), 3);
   }
