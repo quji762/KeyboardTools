@@ -558,9 +558,22 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
   }
 
   async function trustedKeyboardCheck() {
+    const names = ["真实输入通道按键", "功能键 F5/F11/F12 可检测", "快捷键组合松开后不卡键",
+      "F11 全屏只在松开时切换一次", "主线程卡顿时连点判定不误报"];
+    const debuggerApi = contents.debugger;
     try {
-      const debuggerApi = contents.debugger;
       if (!debuggerApi.isAttached()) debuggerApi.attach("1.3");
+    } catch (error) {
+      /* 只有调试协议本身不可用才记为跳过（跳过同样会让自检失败） */
+      return names.map((name) => ({
+        name,
+        pass: false,
+        skipped: true,
+        detail: "调试协议不可用，已跳过：" + error.message
+      }));
+    }
+
+    try {
 
       await dispatchTrustedKey(debuggerApi, "a", "KeyA", 65);
       await new Promise((resolve) => setTimeout(resolve, 120));
@@ -617,19 +630,19 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
       const fullscreen = await fullscreenCheck(debuggerApi);
       const jank = await jankCheck(debuggerApi);
 
-      try { debuggerApi.detach(); } catch (error) { /* ignore */ }
-
       return [keyA, functionKeys, releaseCheck, fullscreen, jank];
     } catch (error) {
-      const skipped = (name) => ({
+      /* 调试协议已连上、执行中途出错：如实记为失败，不归为“不可用” */
+      return names.map((name) => ({
         name,
         pass: false,
-        skipped: true,
-        detail: "调试协议不可用，已跳过：" + error.message
-      });
-      return [skipped("真实输入通道按键"), skipped("功能键 F5/F11/F12 可检测"), skipped("快捷键组合松开后不卡键"), skipped("F11 全屏只在松开时切换一次"), skipped("主线程卡顿时连点判定不误报")];
+        detail: "真实输入检查执行异常：" + error.message
+      }));
+    } finally {
+      try { debuggerApi.detach(); } catch (error) { /* ignore */ }
     }
   }
+
 
   let executed = false;
 
