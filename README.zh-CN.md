@@ -111,7 +111,7 @@ KeyboardTools/
 ```bash
 npm install          # 安装 Electron / electron-builder（仅开发依赖）
 npm start            # 以桌面窗口启动开发版
-npm run smoke        # 自动化自检，真实窗口内执行（24 项断言）
+npm run smoke        # 自动化自检，真实窗口内执行（25 项断言）
 npm run dist         # 构建全部 Windows 目标到 dist/：NSIS 安装版 + 便携版
 npm run dist:dir     # 构建未打包目录，便于手动验证
 ```
@@ -127,7 +127,7 @@ npm run dist:dir     # 构建未打包目录，便于手动验证
 - 长按 `repeat` 排除、不同按键互不影响；
 - 阈值切换、暂停 / 恢复、清空记录、失焦保护；
 - 键位检测统计、主题切换、桌面桥接与版本信息；
-- 通过调试协议注入真实按键事件，验证输入链路。
+- 通过调试协议注入真实按键事件，验证输入链路，包括主进程拦截快捷键后的 F5、F11、F12 检测。
 
 该自检同样在 CI 中执行，打包后的产物可用 `KeyboardTools.exe --smoke-test` 验收。
 

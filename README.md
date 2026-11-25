@@ -120,7 +120,7 @@ Requirements: Windows 10 / 11 x64 and Node.js 22+.
 ```bash
 npm install          # install Electron / electron-builder (devDependencies only)
 npm start            # run the app in a desktop window
-npm run smoke        # automated self-check in a real window (24 assertions)
+npm run smoke        # automated self-check in a real window (25 assertions)
 npm run dist         # build BOTH Windows targets into dist/: NSIS installer + portable exe
 npm run dist:dir     # build an unpacked directory for quick manual testing
 ```
@@ -129,14 +129,14 @@ The runtime has zero third-party dependencies — Electron and electron-builder 
 
 ### Smoke test coverage
 
-`npm run smoke` runs 24 assertions in a real Electron renderer:
+`npm run smoke` runs 25 assertions in a real Electron renderer:
 
 - the 104-key layout renders completely;
 - normal tapping never false-positives; bounce and held-key repeats are detected;
 - long-press `repeat` events are excluded; different keys do not interfere;
 - threshold switching, pause / resume, record clearing and blur protection;
 - key-test stats, theme switching, desktop bridge and version info;
-- real key events injected through the DevTools protocol to verify the actual input path.
+- real key events injected through the DevTools protocol to verify the actual input path, including F5, F11 and F12 after the main process intercepts those shortcuts.
 
 The same suite runs in CI, and the packaged executable is validated with `KeyboardTools.exe --smoke-test`.
 

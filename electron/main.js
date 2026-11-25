@@ -90,6 +90,28 @@ function scheduleWindowStateSave(win) {
   saveTimer = setTimeout(() => writeWindowState(win), 400);
 }
 
+function isForwardedFunctionKey(input) {
+  const key = input.key || "";
+  if (key === "F11") return true;
+  return !isDev && (key === "F5" || key === "F12");
+}
+
+function notifyInterceptedKey(win, input) {
+  if (!win || win.isDestroyed()) return;
+  const key = input.key || "";
+  win.webContents.send("app:intercepted-key", {
+    type: input.type,
+    key,
+    code: input.code || key,
+    location: Number.isFinite(input.location) ? input.location : 0,
+    repeat: Boolean(input.isAutoRepeat),
+    ctrlKey: Boolean(input.control),
+    metaKey: Boolean(input.meta),
+    shiftKey: Boolean(input.shift),
+    altKey: Boolean(input.alt)
+  });
+}
+
 function focusMainWindow() {
   if (!mainWindow) return;
   if (mainWindow.isMinimized()) mainWindow.restore();
@@ -160,15 +182,29 @@ function createWindow() {
   });
 
   contents.on("before-input-event", (event, input) => {
-    if (input.type !== "keyDown") return;
+    const key = input.key || "";
+    const isKeyDown = input.type === "keyDown";
+    const isKeyUp = input.type === "keyUp";
 
-    if (input.key === "F11") {
+    /* 拦截 F11（正式版还有 F5/F12）时，页面收不到按键；
+       按下和松开都转发给渲染层，避免异步通知与原生 keyup 乱序。
+       切换全屏会吞掉 F11 的原生 keyup，因此在 keydown 后补发一次松开。 */
+    if (isForwardedFunctionKey(input) && (isKeyDown || isKeyUp)) {
       event.preventDefault();
+      notifyInterceptedKey(mainWindow, input);
+      if (isKeyDown && key === "F11") {
+        notifyInterceptedKey(mainWindow, Object.assign({}, input, { type: "keyUp", isAutoRepeat: false }));
+      }
+    }
+
+    if (!isKeyDown) return;
+
+    if (key === "F11") {
       mainWindow.setFullScreen(!mainWindow.isFullScreen());
       return;
     }
 
-    if (input.key === "Escape" && mainWindow.isFullScreen()) {
+    if (key === "Escape" && mainWindow.isFullScreen()) {
       mainWindow.setFullScreen(false);
       return;
     }
@@ -176,9 +212,9 @@ function createWindow() {
     if (isDev) return;
 
     const ctrl = input.control || input.meta;
-    const key = (input.key || "").toLowerCase();
-    const blockReload = input.key === "F5" || (ctrl && key === "r");
-    const blockDevTools = input.key === "F12" || (ctrl && input.shift && (key === "i" || key === "j" || key === "c"));
+    const lower = key.toLowerCase();
+    const blockReload = key === "F5" || (ctrl && lower === "r");
+    const blockDevTools = key === "F12" || (ctrl && input.shift && (lower === "i" || lower === "j" || lower === "c"));
     if (blockReload || blockDevTools) event.preventDefault();
   });
 

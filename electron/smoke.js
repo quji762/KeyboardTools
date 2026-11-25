@@ -308,19 +308,23 @@ module.exports = function runSmoke({ app, win, reportPath }) {
     return results;
   }
 
+  async function dispatchTrustedKey(debuggerApi, key, code, vk) {
+    const keyEvent = {
+      key,
+      code,
+      windowsVirtualKeyCode: vk,
+      nativeVirtualKeyCode: vk
+    };
+    await debuggerApi.sendCommand("Input.dispatchKeyEvent", Object.assign({ type: "rawKeyDown" }, keyEvent));
+    await debuggerApi.sendCommand("Input.dispatchKeyEvent", Object.assign({ type: "keyUp" }, keyEvent));
+  }
+
   async function trustedKeyboardCheck() {
     try {
       const debuggerApi = contents.debugger;
       if (!debuggerApi.isAttached()) debuggerApi.attach("1.3");
 
-      const keyEvent = {
-        key: "a",
-        code: "KeyA",
-        windowsVirtualKeyCode: 65,
-        nativeVirtualKeyCode: 65
-      };
-      await debuggerApi.sendCommand("Input.dispatchKeyEvent", Object.assign({ type: "rawKeyDown" }, keyEvent));
-      await debuggerApi.sendCommand("Input.dispatchKeyEvent", Object.assign({ type: "keyUp" }, keyEvent));
+      await dispatchTrustedKey(debuggerApi, "a", "KeyA", 65);
       await new Promise((resolve) => setTimeout(resolve, 120));
 
       const data = await contents.executeJavaScript(
@@ -330,20 +334,43 @@ module.exports = function runSmoke({ app, win, reportPath }) {
         true
       );
 
-      try { debuggerApi.detach(); } catch (error) { /* ignore */ }
-
-      return {
+      const keyA = {
         name: "真实输入通道按键",
         pass: data.tested === "1" && data.testedClass === true,
         detail: JSON.stringify(data)
       };
+
+      await dispatchTrustedKey(debuggerApi, "F5", "F5", 116);
+      await dispatchTrustedKey(debuggerApi, "F11", "F11", 122);
+      await dispatchTrustedKey(debuggerApi, "F12", "F12", 123);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      if (win.isFullScreen()) win.setFullScreen(false);
+
+      const fnKeys = await contents.executeJavaScript(
+        "(() => { const tested = (code) => document.querySelector('.key[data-code=\"' + code + '\"]').classList.contains('tested');" +
+        " return { f5: tested('F5'), f11: tested('F11'), f12: tested('F12')," +
+        " active: document.querySelectorAll('.key.active').length," +
+        " count: document.getElementById('statTested').textContent }; })()",
+        true
+      );
+
+      const functionKeys = {
+        name: "拦截快捷键后功能键仍可检测",
+        pass: fnKeys.f5 === true && fnKeys.f11 === true && fnKeys.f12 === true && fnKeys.active === 0,
+        detail: JSON.stringify(fnKeys)
+      };
+
+      try { debuggerApi.detach(); } catch (error) { /* ignore */ }
+
+      return [keyA, functionKeys];
     } catch (error) {
-      return {
-        name: "真实输入通道按键",
+      const skipped = (name) => ({
+        name,
         pass: true,
         skipped: true,
         detail: "调试协议不可用，已跳过：" + error.message
-      };
+      });
+      return [skipped("真实输入通道按键"), skipped("拦截快捷键后功能键仍可检测")];
     }
   }
 
@@ -357,7 +384,7 @@ module.exports = function runSmoke({ app, win, reportPath }) {
       finish.results = results;
 
       const trusted = await trustedKeyboardCheck();
-      finish.results.push(trusted);
+      finish.results.push(...trusted);
 
       const failed = finish.results.filter((item) => !item.pass);
       const ok = failed.length === 0 && errors.length === 0;
