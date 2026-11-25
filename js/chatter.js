@@ -255,6 +255,13 @@
 
   /* ---------------- 按键状态 ---------------- */
 
+  /* 使用事件自带的时间戳：页面主线程繁忙时事件会排队后集中处理，
+     用处理时刻计算间隔会把正常敲击误判为回弹 */
+  function eventTime(event) {
+    const stamp = event && event.timeStamp;
+    return Number.isFinite(stamp) && stamp > 0 ? stamp : performance.now();
+  }
+
   function clearPressedStates() {
     records.forEach((rec) => {
       rec.down = false;
@@ -280,7 +287,7 @@
 
     if (event.repeat) return;
 
-    const now = performance.now();
+    const now = eventTime(event);
     let rec = records.get(code);
     if (!rec) {
       rec = {
@@ -316,7 +323,7 @@
     const rec = records.get(code);
     if (!rec) return;
 
-    const now = performance.now();
+    const now = eventTime(event);
     rec.down = false;
     rec.lastUp = now;
 

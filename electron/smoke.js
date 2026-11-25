@@ -432,6 +432,51 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
     };
   }
 
+  /* 连点检测：页面主线程卡顿时按键排队到达，间隔仍按事件时间戳判定 */
+  async function jankCheck(debuggerApi) {
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const busy = (ms) => contents.executeJavaScript(
+      "(() => { const t = performance.now(); while (performance.now() - t < " + ms + ") {} return 1; })()", true);
+    const tap = (type) => sendKey(debuggerApi, type, "g", "KeyG", 71);
+    const count = () => contents.executeJavaScript("document.getElementById('chatterCount').textContent", true);
+    await contents.executeJavaScript(
+      "document.querySelector('[data-tab=\"chatter\"]').click(); document.getElementById('resetChatter').click(); 1", true);
+    await wait(100);
+
+    const detail = {};
+    /* 松开到再次按下约 60 ms（大于 30 ms 阈值），主线程忙 400 ms */
+    let blocker = busy(400);
+    await wait(30);
+    let pending = [tap("rawKeyDown")];
+    await wait(40); pending.push(tap("keyUp"));
+    await wait(60); pending.push(tap("rawKeyDown"));
+    await wait(40); pending.push(tap("keyUp"));
+    await Promise.all(pending.concat(blocker));
+    await wait(150);
+    detail.slowTapsUnderJank = await count();
+
+    /* 对照：卡顿期间真实回弹（约 8 ms）仍要识别 */
+    await wait(300);
+    blocker = busy(400);
+    await wait(30);
+    pending = [tap("rawKeyDown")];
+    await wait(30); pending.push(tap("keyUp"));
+    await wait(8); pending.push(tap("rawKeyDown"));
+    await wait(30); pending.push(tap("keyUp"));
+    await Promise.all(pending.concat(blocker));
+    await wait(150);
+    detail.bounceUnderJank = await count();
+
+    await contents.executeJavaScript(
+      "document.getElementById('resetChatter').click(); document.querySelector('[data-tab=\"keys\"]').click(); 1", true);
+    await wait(60);
+    return {
+      name: "主线程卡顿时连点判定不误报",
+      pass: detail.slowTapsUnderJank === "0" && detail.bounceUnderJank === "1",
+      detail: JSON.stringify(detail)
+    };
+  }
+
   async function trustedKeyboardCheck() {
     try {
       const debuggerApi = contents.debugger;
@@ -490,10 +535,11 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
 
       const releaseCheck = await shortcutReleaseCheck(debuggerApi);
       const fullscreen = await fullscreenCheck(debuggerApi);
+      const jank = await jankCheck(debuggerApi);
 
       try { debuggerApi.detach(); } catch (error) { /* ignore */ }
 
-      return [keyA, functionKeys, releaseCheck, fullscreen];
+      return [keyA, functionKeys, releaseCheck, fullscreen, jank];
     } catch (error) {
       const skipped = (name) => ({
         name,
@@ -501,7 +547,7 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
         skipped: true,
         detail: "调试协议不可用，已跳过：" + error.message
       });
-      return [skipped("真实输入通道按键"), skipped("功能键 F5/F11/F12 可检测"), skipped("快捷键组合松开后不卡键"), skipped("F11 全屏只在松开时切换一次")];
+      return [skipped("真实输入通道按键"), skipped("功能键 F5/F11/F12 可检测"), skipped("快捷键组合松开后不卡键"), skipped("F11 全屏只在松开时切换一次"), skipped("主线程卡顿时连点判定不误报")];
     }
   }
 
