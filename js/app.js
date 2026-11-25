@@ -168,30 +168,4 @@
       /* 浏览器预览或信息不可用时保留默认文案 */
     });
   }
-
-  /* 主进程拦截的功能键通过单向通道补发，供键位检测记账 */
-  if (window.keyboardToolsDesktop && typeof window.keyboardToolsDesktop.onInterceptedKey === "function") {
-    const KEY_CODES = { F5: 116, F11: 122, F12: 123 };
-    window.keyboardToolsDesktop.onInterceptedKey((payload) => {
-      if (!payload || typeof payload !== "object") return;
-      const type = payload.type === "keyUp" ? "keyup" : payload.type === "keyDown" ? "keydown" : "";
-      if (!type) return;
-      const key = String(payload.key || "");
-      const code = String(payload.code || key);
-      if (!/^(F5|F11|F12)$/.test(key) && !/^(F5|F11|F12)$/.test(code)) return;
-      document.dispatchEvent(new KeyboardEvent(type, {
-        key: key || code,
-        code: code || key,
-        keyCode: KEY_CODES[code] || KEY_CODES[key] || 0,
-        location: Number.isFinite(payload.location) ? payload.location : 0,
-        repeat: Boolean(payload.repeat),
-        ctrlKey: Boolean(payload.ctrlKey),
-        metaKey: Boolean(payload.metaKey),
-        shiftKey: Boolean(payload.shiftKey),
-        altKey: Boolean(payload.altKey),
-        bubbles: true,
-        cancelable: true
-      }));
-    });
-  }
 })();

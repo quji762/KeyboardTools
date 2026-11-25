@@ -3,7 +3,7 @@
 /**
  * KeyboardTools 桌面应用主进程
  * - 独立窗口承载现有键位检测 / 连点检测界面
- * - 单实例运行、窗口尺寸记忆、禁止外部导航、生产环境屏蔽刷新与开发者工具
+ * - 单实例运行、窗口尺寸记忆、禁止外部导航、正式版关闭开发者工具
  * - 支持 --smoke-test 自动化自检模式，供 CI 与 exe 产物验收
  */
 
@@ -14,8 +14,10 @@ const os = require("node:os");
 
 const APP_ID = "com.keyboardtools.app";
 const APP_TITLE = "KeyboardTools · 键盘检测工具";
-const isDev = !app.isPackaged;
 const isSmoke = process.argv.includes("--smoke-test");
+/* --smoke-production 仅在自检时生效：未打包也按正式版配置运行，用于验证正式版输入链路 */
+const isProductionMode = app.isPackaged || (isSmoke && process.argv.includes("--smoke-production"));
+const isDev = !isProductionMode;
 
 if (isSmoke) {
   /* 自检窗口从不被用户聚焦，关闭 Windows 原生遮挡计算，
@@ -104,27 +106,6 @@ function scheduleWindowStateSave(win) {
   saveTimer = setTimeout(() => writeWindowState(win), 400);
 }
 
-function isForwardedFunctionKey(input) {
-  const key = input.key || "";
-  return !isDev && (key === "F5" || key === "F12");
-}
-
-function notifyInterceptedKey(win, input) {
-  if (!win || win.isDestroyed()) return;
-  const key = input.key || "";
-  win.webContents.send("app:intercepted-key", {
-    type: input.type,
-    key,
-    code: input.code || key,
-    location: Number.isFinite(input.location) ? input.location : 0,
-    repeat: Boolean(input.isAutoRepeat),
-    ctrlKey: Boolean(input.control),
-    metaKey: Boolean(input.meta),
-    shiftKey: Boolean(input.shift),
-    altKey: Boolean(input.alt)
-  });
-}
-
 function focusMainWindow() {
   if (!mainWindow) return;
   if (mainWindow.isMinimized()) mainWindow.restore();
@@ -199,14 +180,9 @@ function createWindow() {
     const isKeyDown = input.type === "keyDown";
     const isKeyUp = input.type === "keyUp";
 
-    /* 正式版拦截的 F5/F12 转发给渲染层记账。
-       F11 不 preventDefault，页面能收到原生按下/松开以保持按下态；
-       全屏在松开后异步切换，避免挡住 keyup。长按自动重复不切换全屏。 */
-    if (isForwardedFunctionKey(input) && (isKeyDown || isKeyUp)) {
-      event.preventDefault();
-      notifyInterceptedKey(mainWindow, input);
-    }
-
+    /* 不对任何按键 preventDefault：在这里拦下 keyDown 会让 Chromium 丢弃随后的 keyUp，
+       页面上的键会一直处于按下状态。应用菜单已移除、正式版 devTools 关闭，
+       F5 / Ctrl+R / F12 / Ctrl+Shift+I 本身就没有刷新或打开开发者工具的效果。 */
     if (isKeyUp && key === "F11" && !input.isAutoRepeat) {
       setImmediate(() => {
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -224,14 +200,6 @@ function createWindow() {
       mainWindow.setFullScreen(false);
       return;
     }
-
-    if (isDev) return;
-
-    const ctrl = input.control || input.meta;
-    const lower = key.toLowerCase();
-    const blockReload = key === "F5" || (ctrl && lower === "r");
-    const blockDevTools = key === "F12" || (ctrl && input.shift && (lower === "i" || lower === "j" || lower === "c"));
-    if (blockReload || blockDevTools) event.preventDefault();
   });
 
   contents.on("did-fail-load", (event, code, description, validatedURL) => {
@@ -246,6 +214,7 @@ function createWindow() {
     require("./smoke")({
       app,
       win: mainWindow,
+      production: isProductionMode,
       reportPath: getArgValue("--smoke-report")
     });
   }

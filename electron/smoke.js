@@ -21,7 +21,7 @@ function writeReport(reportPath, report) {
   }
 }
 
-module.exports = function runSmoke({ app, win, reportPath }) {
+module.exports = function runSmoke({ app, win, production, reportPath }) {
   const errors = [];
   const startedAt = Date.now();
   let settled = false;
@@ -65,6 +65,7 @@ module.exports = function runSmoke({ app, win, reportPath }) {
       durationMs: Date.now() - startedAt,
       platform: process.platform,
       packaged: app.isPackaged,
+      production: Boolean(production),
       electron: process.versions.electron,
       chrome: process.versions.chrome,
       errors,
@@ -334,6 +335,66 @@ module.exports = function runSmoke({ app, win, reportPath }) {
     await debuggerApi.sendCommand("Input.dispatchKeyEvent", Object.assign({ type: "keyUp" }, keyEvent));
   }
 
+  async function sendKey(debuggerApi, type, key, code, vk, modifiers) {
+    await debuggerApi.sendCommand("Input.dispatchKeyEvent", {
+      type, key, code, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk, modifiers: modifiers || 0
+    });
+  }
+
+  /* 刷新 / 开发者工具类快捷键：按下和松开都必须到达页面，且不会刷新页面或打开开发者工具 */
+  async function shortcutReleaseCheck(debuggerApi) {
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    await contents.executeJavaScript("document.getElementById('resetKeys').click(); window.__kbtMarker = 1; 1", true);
+
+    const combo = async (letter, code, vk, withShift) => {
+      const mods = withShift ? 10 : 2;
+      await sendKey(debuggerApi, "rawKeyDown", "Control", "ControlLeft", 17, 2);
+      if (withShift) await sendKey(debuggerApi, "rawKeyDown", "Shift", "ShiftLeft", 16, 10);
+      await sendKey(debuggerApi, "rawKeyDown", letter, code, vk, mods);
+      await sendKey(debuggerApi, "keyUp", letter, code, vk, mods);
+      if (withShift) await sendKey(debuggerApi, "keyUp", "Shift", "ShiftLeft", 16, 2);
+      await sendKey(debuggerApi, "keyUp", "Control", "ControlLeft", 17, 0);
+    };
+    await combo("r", "KeyR", 82, false);
+    await combo("I", "KeyI", 73, true);
+    await combo("J", "KeyJ", 74, true);
+    await sendKey(debuggerApi, "rawKeyDown", "F5", "F5", 116);
+    await sendKey(debuggerApi, "keyUp", "F5", "F5", 116);
+    await wait(300);
+
+    const keys = await contents.executeJavaScript(
+      "(() => { const tested = (code) => document.querySelector('.key[data-code=\"' + code + '\"]').classList.contains('tested');" +
+      " return { marker: window.__kbtMarker === 1, r: tested('KeyR'), i: tested('KeyI'), j: tested('KeyJ'), f5: tested('F5')," +
+      " stuck: [...document.querySelectorAll('.key.active')].map((n) => n.dataset.code)," +
+      " pressed: document.getElementById('statPressed').textContent }; })()",
+      true
+    );
+    keys.devTools = contents.isDevToolsOpened();
+
+    /* 连点检测：正常间隔按两次 F5 / Ctrl 不得报“未松开重复触发” */
+    await contents.executeJavaScript(
+      "document.querySelector('[data-tab=\"chatter\"]').click(); document.getElementById('resetChatter').click(); 1", true);
+    await wait(100);
+    for (let i = 0; i < 2; i += 1) {
+      await sendKey(debuggerApi, "rawKeyDown", "F5", "F5", 116);
+      await wait(40);
+      await sendKey(debuggerApi, "keyUp", "F5", "F5", 116);
+      await combo("r", "KeyR", 82, false);
+      await wait(250);
+    }
+    keys.chatterCount = await contents.executeJavaScript("document.getElementById('chatterCount').textContent", true);
+    await contents.executeJavaScript(
+      "document.getElementById('resetChatter').click(); document.querySelector('[data-tab=\"keys\"]').click(); 1", true);
+    await wait(60);
+
+    return {
+      name: "快捷键组合松开后不卡键",
+      pass: keys.marker && !keys.devTools && keys.r && keys.i && keys.j && keys.f5 &&
+        keys.stuck.length === 0 && keys.pressed === "0" && keys.chatterCount === "0",
+      detail: JSON.stringify(keys)
+    };
+  }
+
   async function trustedKeyboardCheck() {
     try {
       const debuggerApi = contents.debugger;
@@ -384,15 +445,17 @@ module.exports = function runSmoke({ app, win, reportPath }) {
       fnKeys.f11HeldTested = held.tested;
 
       const functionKeys = {
-        name: "拦截快捷键后功能键仍可检测",
+        name: "功能键 F5/F11/F12 可检测",
         pass: fnKeys.f5 === true && fnKeys.f11 === true && fnKeys.f12 === true &&
           fnKeys.active === 0 && held.active === true && held.tested === true,
         detail: JSON.stringify(fnKeys)
       };
 
+      const releaseCheck = await shortcutReleaseCheck(debuggerApi);
+
       try { debuggerApi.detach(); } catch (error) { /* ignore */ }
 
-      return [keyA, functionKeys];
+      return [keyA, functionKeys, releaseCheck];
     } catch (error) {
       const skipped = (name) => ({
         name,
@@ -400,7 +463,7 @@ module.exports = function runSmoke({ app, win, reportPath }) {
         skipped: true,
         detail: "调试协议不可用，已跳过：" + error.message
       });
-      return [skipped("真实输入通道按键"), skipped("拦截快捷键后功能键仍可检测")];
+      return [skipped("真实输入通道按键"), skipped("功能键 F5/F11/F12 可检测"), skipped("快捷键组合松开后不卡键")];
     }
   }
 

@@ -22,6 +22,7 @@
     "start": "electron .",
     "dev": "electron .",
     "smoke": "electron . --smoke-test",
+    "smoke:prod": "electron . --smoke-test --smoke-production",
     "dist": "electron-builder --win --x64",
     "dist:dir": "electron-builder --win dir --x64"
   },
