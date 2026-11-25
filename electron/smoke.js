@@ -314,6 +314,32 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
           prtBounce.firstEvent === "松开后回弹",
         JSON.stringify({ prtSlow, prtBounce }));
       reset();
+      for (const node of document.querySelectorAll(".key")) {
+        const code = node.dataset.code;
+        fireKey("keydown", code, code, 0);
+        fireKey("keyup", code, code, 0);
+      }
+      await sleep(20);
+      const fullCoverage = {
+        keys: byId("chatterKeys").textContent,
+        total: byId("chatterTotal").textContent,
+        coverage: byId("chatterCoverage").textContent,
+        count: byId("chatterCount").textContent
+      };
+      reset();
+      fireKey("keydown", "F12", "F12", 123);
+      await sleep(2);
+      fireKey("keyup", "F12", "F12", 123);
+      await sleep(5);
+      fireKey("keydown", "F12", "F12", 123);
+      fireKey("keyup", "F12", "F12", 123);
+      await sleep(20);
+      fullCoverage.f12Bounce = byId("chatterCount").textContent;
+      record("连点检测覆盖率可达 100%（含 F12，不含 F11）",
+        fullCoverage.keys === "103" && fullCoverage.total === "103" && fullCoverage.coverage === "100%" &&
+          fullCoverage.count === "0" && fullCoverage.f12Bounce === "1",
+        JSON.stringify(fullCoverage));
+      reset();
       document.querySelector('[data-tab="keys"]').click();
       await sleep(60);
 

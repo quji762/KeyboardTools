@@ -44,10 +44,13 @@
 
   if (!el.panel) return;
 
-  /* 布局键位元数据（104 键），未知按键不参与故障判定 */
+  /* 布局键位元数据，未知按键不参与故障判定。
+     F11 用于切换全屏，每次松开都会切换窗口，不参与连点检测，也不计入总数 */
+  const EXCLUDED_CODES = new Set(["F11"]);
   const keyMeta = new Map();
   document.querySelectorAll(".key").forEach((node) => {
     const code = node.dataset.code;
+    if (EXCLUDED_CODES.has(code)) return;
     const label = node.querySelector(".k-label");
     if (code) keyMeta.set(code, { code, label: label ? label.textContent : code });
   });
@@ -315,7 +318,6 @@
 
     const code = event.code;
     if (!code || !keyMeta.has(code)) return;
-    if (code === "F11" || code === "F12") return;
 
     /* 阻止页面滚动、按钮激活与快捷键，保证检测区域只接收按键输入 */
     event.preventDefault();
