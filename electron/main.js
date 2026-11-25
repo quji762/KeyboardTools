@@ -29,16 +29,42 @@ app.setName("KeyboardTools");
 app.setAppUserModelId(APP_ID);
 
 if (isSmoke) {
-  const smokeUserData = path.join(os.tmpdir(), "keyboardtools-smoke-" + process.pid);
-  fs.mkdirSync(smokeUserData, { recursive: true });
-  app.setPath("userData", smokeUserData);
-  app.on("quit", () => {
+  const SMOKE_PREFIX = "keyboardtools-smoke-";
+  const smokeUserData = path.join(os.tmpdir(), SMOKE_PREFIX + process.pid);
+  const removeDir = (dir) => {
     try {
-      fs.rmSync(smokeUserData, { recursive: true, force: true });
+      fs.rmSync(dir, { recursive: true, force: true });
     } catch (error) {
       /* 临时目录清理失败不影响自检结果 */
     }
-  });
+  };
+  const isAlive = (pid) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (error) {
+      return error.code === "EPERM";
+    }
+  };
+
+  /* 清理以前自检遗留、对应进程已退出的临时目录 */
+  try {
+    fs.readdirSync(os.tmpdir()).forEach((name) => {
+      if (!name.startsWith(SMOKE_PREFIX)) return;
+      const pid = Number(name.slice(SMOKE_PREFIX.length));
+      if (Number.isInteger(pid) && pid > 0 && pid !== process.pid && !isAlive(pid)) {
+        removeDir(path.join(os.tmpdir(), name));
+      }
+    });
+  } catch (error) {
+    /* 读取临时目录失败时跳过清理 */
+  }
+
+  fs.mkdirSync(smokeUserData, { recursive: true });
+  app.setPath("userData", smokeUserData);
+  /* 自检以 app.exit() 结束，不会触发 quit 事件，改在进程退出时清理；
+     Chromium 退出时可能再写入少量文件，残留目录由下一次自检启动时清掉 */
+  process.on("exit", () => removeDir(smokeUserData));
 }
 
 let mainWindow = null;
