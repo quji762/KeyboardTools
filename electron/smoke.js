@@ -396,7 +396,7 @@ module.exports = function runSmoke({ app, win, reportPath }) {
     } catch (error) {
       const skipped = (name) => ({
         name,
-        pass: true,
+        pass: false,
         skipped: true,
         detail: "调试协议不可用，已跳过：" + error.message
       });
@@ -416,9 +416,13 @@ module.exports = function runSmoke({ app, win, reportPath }) {
       const trusted = await trustedKeyboardCheck();
       finish.results.push(...trusted);
 
-      const failed = finish.results.filter((item) => !item.pass);
-      const ok = failed.length === 0 && errors.length === 0;
-      finish(ok, failed.length ? failed.map((item) => item.name).join("、") + " 未通过" : null);
+      const failed = finish.results.filter((item) => !item.pass && !item.skipped);
+      const skippedItems = finish.results.filter((item) => item.skipped);
+      const ok = failed.length === 0 && skippedItems.length === 0 && errors.length === 0;
+      let fatal = null;
+      if (failed.length) fatal = failed.map((item) => item.name).join("、") + " 未通过";
+      else if (skippedItems.length) fatal = skippedItems.map((item) => item.name).join("、") + " 已跳过";
+      finish(ok, fatal);
     } catch (error) {
       finish(false, "自检执行异常：" + error.message);
     }
