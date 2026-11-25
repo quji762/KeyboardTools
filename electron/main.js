@@ -10,6 +10,7 @@
 const { app, BrowserWindow, Menu, ipcMain, screen } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
+const os = require("node:os");
 
 const APP_ID = "com.keyboardtools.app";
 const APP_TITLE = "KeyboardTools · 键盘检测工具";
@@ -24,6 +25,19 @@ if (isSmoke) {
 
 app.setName("KeyboardTools");
 app.setAppUserModelId(APP_ID);
+
+if (isSmoke) {
+  const smokeUserData = path.join(os.tmpdir(), "keyboardtools-smoke-" + process.pid);
+  fs.mkdirSync(smokeUserData, { recursive: true });
+  app.setPath("userData", smokeUserData);
+  app.on("quit", () => {
+    try {
+      fs.rmSync(smokeUserData, { recursive: true, force: true });
+    } catch (error) {
+      /* 临时目录清理失败不影响自检结果 */
+    }
+  });
+}
 
 let mainWindow = null;
 let saveTimer = null;

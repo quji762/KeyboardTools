@@ -113,6 +113,21 @@ module.exports = function runSmoke({ app, win, reportPath }) {
         firstGap: document.querySelector("#faultEventList li.fault-event .event-gap")?.textContent || ""
       });
       const reset = () => byId("resetChatter").click();
+      const setTheme = (desired) => {
+        const btn = byId("themeToggle");
+        if (btn && document.documentElement.dataset.theme !== desired) btn.click();
+      };
+      const setThreshold = (ms) => {
+        const btn = document.querySelector('.seg-btn[data-threshold="' + ms + '"]');
+        if (btn && !btn.classList.contains("is-active")) btn.click();
+      };
+
+      try {
+        localStorage.setItem("keyboardtools.theme", "dark");
+        localStorage.setItem("keyboardtools.chatter.threshold", "30");
+      } catch (error) { /* ignore */ }
+      setTheme("dark");
+      setThreshold(30);
 
       const keyCount = document.querySelectorAll(".key").length;
       record("渲染 104 键布局", keyCount === 104 && byId("statTotal").textContent === "104", keyCount + " 键");
@@ -263,12 +278,13 @@ module.exports = function runSmoke({ app, win, reportPath }) {
       fireKey("keyup", "KeyB", "b", 66);
       byId("resetKeys").click();
 
+      setTheme("dark");
       const bodyBg = getComputedStyle(document.body).backgroundColor;
-      const themeDebug = { bodyBg };
+      const themeDebug = { bodyBg, startedTheme: document.documentElement.dataset.theme };
       try {
         const btn = byId("themeToggle");
         themeDebug.btnFound = Boolean(btn);
-        btn.click();
+        setTheme("light");
         themeDebug.themeSync = document.documentElement.dataset.theme;
         themeDebug.bgSync = getComputedStyle(document.body).backgroundColor;
         themeDebug.ariaSync = btn.getAttribute("aria-pressed");
@@ -291,15 +307,12 @@ module.exports = function runSmoke({ app, win, reportPath }) {
         bg: themeDebug.bg60
       };
       record("浅色主题生效", light.theme === "light" && light.bg !== bodyBg, JSON.stringify(themeDebug));
-      byId("themeToggle").click();
+      setTheme("dark");
       await sleep(40);
       record("恢复深色主题", document.documentElement.dataset.theme === "dark");
 
       document.querySelector('[data-tab="keys"]').click();
       await sleep(30);
-      try {
-        localStorage.removeItem("keyboardtools.chatter.threshold");
-      } catch (error) { /* ignore */ }
 
       return results;
     };
