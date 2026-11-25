@@ -275,19 +275,11 @@
     }
   }
 
-  function onKeyDown(event) {
-    if (el.panel.hidden || !monitoring) return;
+  function isListening() {
+    return !el.panel.hidden && monitoring;
+  }
 
-    const code = event.code;
-    if (!code || !keyMeta.has(code)) return;
-    if (code === "F11" || code === "F12") return;
-
-    /* 阻止页面滚动、按钮激活与快捷键，保证检测区域只接收按键输入 */
-    event.preventDefault();
-
-    if (event.repeat) return;
-
-    const now = eventTime(event);
+  function handleDown(code, now) {
     let rec = records.get(code);
     if (!rec) {
       rec = {
@@ -318,12 +310,35 @@
     refreshStats();
   }
 
+  function onKeyDown(event) {
+    if (!isListening()) return;
+
+    const code = event.code;
+    if (!code || !keyMeta.has(code)) return;
+    if (code === "F11" || code === "F12") return;
+
+    /* 阻止页面滚动、按钮激活与快捷键，保证检测区域只接收按键输入 */
+    event.preventDefault();
+
+    if (event.repeat) return;
+
+    handleDown(code, eventTime(event));
+  }
+
   function onKeyUp(event) {
     const code = event.code;
+    const now = eventTime(event);
+
+    /* Windows 下 PrintScreen 通常只产生 keyup：未见按下时先补记一次按下，
+       此时回弹按两次松开的间隔判定 */
+    if (code === "PrintScreen" && isListening() && keyMeta.has(code)) {
+      const known = records.get(code);
+      if (!known || !known.down) handleDown(code, now);
+    }
+
     const rec = records.get(code);
     if (!rec) return;
 
-    const now = eventTime(event);
     rec.down = false;
     rec.lastUp = now;
 

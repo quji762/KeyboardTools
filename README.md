@@ -151,6 +151,7 @@ The runtime has zero third-party dependencies — Electron and electron-builder 
 
 - Keys are only detected while the app window has focus; no global hooks are installed, so input in other programs is never recorded.
 - Extra keys found on non-ANSI keyboards (JIS-specific or multimedia keys) are not counted in the 104-key coverage or in fault detection.
+- On Windows the PrintScreen key usually delivers only a key-up event, so a release without a preceding press is counted as one full press, and chatter on that key is judged by the gap between releases. If Windows is set to open the Snipping Tool on PrtSc, the window may lose focus and the key cannot be detected.
 - The threshold is a guideline: human re-presses (almost always slower than 30 ms) never count as faults, but extreme input devices or macros may produce borderline results.
 - Builds are not code-signed, so SmartScreen shows a warning on first run.
 

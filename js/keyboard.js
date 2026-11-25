@@ -211,6 +211,29 @@
     }
   }
 
+  /* 记一次新的按下：计数、覆盖率、历史与按键音 */
+  function registerPress(event, code, node) {
+    pressed.add(code);
+    peakPressed = Math.max(peakPressed, pressed.size);
+    pressCount += 1;
+
+    /* 仅统计布局内键位，避免多媒体键等未知 code 令覆盖率超过 100% */
+    if (node && !tested.has(code)) {
+      tested.add(code);
+      node.classList.add("tested");
+    }
+
+    history.unshift({
+      label: displayKeyName(event, node),
+      code: code,
+      time: formatTime(new Date())
+    });
+    if (history.length > 12) history.pop();
+    renderLog();
+
+    window.KeyboardToolsSound && window.KeyboardToolsSound.play("key");
+  }
+
   function onKeyDown(event) {
     if (keysPanel.hidden) return;
 
@@ -218,25 +241,7 @@
     const node = keyIndex.get(code);
 
     if (!event.repeat) {
-      pressed.add(code);
-      peakPressed = Math.max(peakPressed, pressed.size);
-      pressCount += 1;
-
-      /* 仅统计布局内键位，避免多媒体键等未知 code 令覆盖率超过 100% */
-      if (node && !tested.has(code)) {
-        tested.add(code);
-        node.classList.add("tested");
-      }
-
-      history.unshift({
-        label: displayKeyName(event, node),
-        code: code,
-        time: formatTime(new Date())
-      });
-      if (history.length > 12) history.pop();
-      renderLog();
-
-      window.KeyboardToolsSound && window.KeyboardToolsSound.play("key");
+      registerPress(event, code, node);
     } else {
       pressCount += 1;
     }
@@ -256,6 +261,13 @@
 
   function onKeyUp(event) {
     const code = event.code || "Unidentified";
+    /* Windows 下 PrintScreen 通常只产生 keyup，没有 keydown；
+       收到未见按下的 PrintScreen 松开时按一次完整按键记录 */
+    if (code === "PrintScreen" && !pressed.has(code) && !keysPanel.hidden) {
+      const node = keyIndex.get(code);
+      registerPress(event, code, node);
+      updateDetail(event, node);
+    }
     pressed.delete(code);
     setActive(code, false);
     refreshStats();

@@ -281,6 +281,42 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
       fireKey("keyup", "KeyB", "b", 66);
       byId("resetKeys").click();
 
+      /* Windows 下 PrintScreen 通常只有 keyup */
+      fireKey("keyup", "PrintScreen", "PrintScreen", 44);
+      await sleep(20);
+      const prtOnlyUp = {
+        tested: document.querySelector('.key[data-code="PrintScreen"]').classList.contains("tested"),
+        presses: byId("statPresses").textContent,
+        pressed: byId("statPressed").textContent
+      };
+      await press("PrintScreen", "PrintScreen", 44);
+      await sleep(20);
+      prtOnlyUp.pressesAfterFullPress = byId("statPresses").textContent;
+      record("PrintScreen 仅松开也计入键位检测",
+        prtOnlyUp.tested && prtOnlyUp.presses === "1" && prtOnlyUp.pressed === "0" &&
+          prtOnlyUp.pressesAfterFullPress === "2",
+        JSON.stringify(prtOnlyUp));
+      byId("resetKeys").click();
+
+      document.querySelector('[data-tab="chatter"]').click();
+      await sleep(60);
+      reset();
+      fireKey("keyup", "PrintScreen", "PrintScreen", 44);
+      await sleep(200);
+      fireKey("keyup", "PrintScreen", "PrintScreen", 44);
+      await sleep(20);
+      const prtSlow = stats();
+      fireKey("keyup", "PrintScreen", "PrintScreen", 44);
+      await sleep(20);
+      const prtBounce = stats();
+      record("PrintScreen 仅松开也参与连点检测",
+        prtSlow.keys === "1" && prtSlow.count === "0" && prtBounce.count === "1" &&
+          prtBounce.firstEvent === "松开后回弹",
+        JSON.stringify({ prtSlow, prtBounce }));
+      reset();
+      document.querySelector('[data-tab="keys"]').click();
+      await sleep(60);
+
       setTheme("dark");
       const bodyBg = getComputedStyle(document.body).backgroundColor;
       const themeDebug = { bodyBg, startedTheme: document.documentElement.dataset.theme };
