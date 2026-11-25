@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Electron 无界面自检（--smoke-test）
+ * Electron 自动化自检（--smoke-test），在真实窗口中执行断言
  * 在真实 Electron 渲染进程中执行一组断言，并输出 JSON 报告。
  * 用法：electron . --smoke-test [--smoke-report=C:\path\report.json]
  */

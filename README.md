@@ -100,7 +100,7 @@ KeyboardTools/
 ├── electron/
 │   ├── main.js             # Main process: window, single instance, navigation guard
 │   ├── preload.js          # Preload: read-only app-info bridge only
-│   └── smoke.js            # Headless self-check (--smoke-test)
+│   └── smoke.js            # Automated self-check in a real window (--smoke-test)
 ├── scripts/
 │   └── generate_icon.py    # App icon generator (Pillow)
 ├── build/                  # Icons

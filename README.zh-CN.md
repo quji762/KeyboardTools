@@ -91,7 +91,7 @@ KeyboardTools/
 ├── electron/
 │   ├── main.js             # 主进程：窗口、单实例、导航与快捷键防护
 │   ├── preload.js          # 预加载：仅暴露只读应用信息
-│   └── smoke.js            # 无界面自动化自检
+│   └── smoke.js            # 自动化自检（真实窗口）
 ├── scripts/
 │   └── generate_icon.py    # 生成应用图标（Pillow）
 ├── build/                  # 图标
