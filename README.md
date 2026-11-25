@@ -120,7 +120,8 @@ Requirements: Windows 10 / 11 x64 and Node.js 22+.
 ```bash
 npm install          # install Electron / electron-builder (devDependencies only)
 npm start            # run the app in a desktop window
-npm run smoke        # automated self-check in a real window (25 assertions)
+npm run smoke        # automated self-check in a real window (dev configuration)
+npm run smoke:prod   # same self-check with the production configuration (as in the packaged app)
 npm run dist         # build BOTH Windows targets into dist/: NSIS installer + portable exe
 npm run dist:dir     # build an unpacked directory for quick manual testing
 ```
@@ -129,16 +130,16 @@ The runtime has zero third-party dependencies — Electron and electron-builder 
 
 ### Smoke test coverage
 
-`npm run smoke` runs 25 assertions in a real Electron renderer:
+`npm run smoke` runs its assertions in a real Electron renderer:
 
 - the 104-key layout renders completely;
 - normal tapping never false-positives; bounce and held-key repeats are detected;
 - long-press `repeat` events are excluded; different keys do not interfere;
 - threshold switching, pause / resume, record clearing and blur protection;
 - key-test stats, theme switching, desktop bridge and version info;
-- real key events injected through the DevTools protocol to verify the actual input path, including F5, F11 and F12 after the main process intercepts those shortcuts.
+- real key events injected through the DevTools protocol to verify the actual input path: F5 / F11 / F12 are detected, Ctrl+R and Ctrl+Shift+I/J release cleanly without stuck keys or false chatter, and F11 toggles fullscreen exactly once, on release.
 
-The same suite runs in CI, and the packaged executable is validated with `KeyboardTools.exe --smoke-test`.
+`npm run smoke:prod` (`--smoke-production`) runs the same suite with the production configuration (DevTools disabled), which is what the packaged app uses; the flag only takes effect together with `--smoke-test`. CI currently runs `npm run smoke` (dev configuration) only, so run `npm run smoke:prod` locally before a release. The packaged executable can be validated with `KeyboardTools.exe --smoke-test`.
 
 ## Releasing (maintainers)
 

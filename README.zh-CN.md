@@ -111,7 +111,8 @@ KeyboardTools/
 ```bash
 npm install          # 安装 Electron / electron-builder（仅开发依赖）
 npm start            # 以桌面窗口启动开发版
-npm run smoke        # 自动化自检，真实窗口内执行（25 项断言）
+npm run smoke        # 自动化自检，真实窗口内执行（开发配置）
+npm run smoke:prod   # 同一套自检，按正式版配置运行（与打包产物一致）
 npm run dist         # 构建全部 Windows 目标到 dist/：NSIS 安装版 + 便携版
 npm run dist:dir     # 构建未打包目录，便于手动验证
 ```
@@ -127,9 +128,9 @@ npm run dist:dir     # 构建未打包目录，便于手动验证
 - 长按 `repeat` 排除、不同按键互不影响；
 - 阈值切换、暂停 / 恢复、清空记录、失焦保护；
 - 键位检测统计、主题切换、桌面桥接与版本信息；
-- 通过调试协议注入真实按键事件，验证输入链路，包括主进程拦截快捷键后的 F5、F11、F12 检测。
+- 通过调试协议注入真实按键事件，验证输入链路：F5 / F11 / F12 可检测，Ctrl+R、Ctrl+Shift+I/J 松开后不卡键、连点检测不误报，F11 只在松开时切换一次全屏。
 
-该自检同样在 CI 中执行，打包后的产物可用 `KeyboardTools.exe --smoke-test` 验收。
+`npm run smoke:prod`（`--smoke-production`）以正式版配置（关闭开发者工具）运行同一套自检，与打包产物一致；该开关只在 `--smoke-test` 下生效。CI 目前只执行 `npm run smoke`（开发配置），发布前请在本地再跑一次 `npm run smoke:prod`。打包后的产物可用 `KeyboardTools.exe --smoke-test` 验收。
 
 ## 发布流程（维护者）
 

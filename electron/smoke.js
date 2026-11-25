@@ -395,6 +395,43 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
     };
   }
 
+  /* F11：按住（含系统自动重复）期间不切换，松开后只切换一次 */
+  async function fullscreenCheck(debuggerApi) {
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const original = win.setFullScreen;
+    const calls = [];
+    win.setFullScreen = function (flag) {
+      calls.push(Boolean(flag));
+      return original.call(win, flag);
+    };
+    const detail = {};
+    try {
+      await sendKey(debuggerApi, "rawKeyDown", "F11", "F11", 122);
+      for (let i = 0; i < 3; i += 1) {
+        await wait(30);
+        await debuggerApi.sendCommand("Input.dispatchKeyEvent", {
+          type: "rawKeyDown", key: "F11", code: "F11", windowsVirtualKeyCode: 122, nativeVirtualKeyCode: 122, autoRepeat: true
+        });
+      }
+      await wait(150);
+      detail.whileHeld = calls.length;
+      await sendKey(debuggerApi, "keyUp", "F11", "F11", 122);
+      await wait(300);
+      detail.afterRelease = calls.slice();
+    } finally {
+      win.setFullScreen = original;
+      if (win.isFullScreen()) {
+        win.setFullScreen(false);
+        await wait(300);
+      }
+    }
+    return {
+      name: "F11 全屏只在松开时切换一次",
+      pass: detail.whileHeld === 0 && detail.afterRelease.length === 1 && detail.afterRelease[0] === true,
+      detail: JSON.stringify(detail)
+    };
+  }
+
   async function trustedKeyboardCheck() {
     try {
       const debuggerApi = contents.debugger;
@@ -452,10 +489,11 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
       };
 
       const releaseCheck = await shortcutReleaseCheck(debuggerApi);
+      const fullscreen = await fullscreenCheck(debuggerApi);
 
       try { debuggerApi.detach(); } catch (error) { /* ignore */ }
 
-      return [keyA, functionKeys, releaseCheck];
+      return [keyA, functionKeys, releaseCheck, fullscreen];
     } catch (error) {
       const skipped = (name) => ({
         name,
@@ -463,7 +501,7 @@ module.exports = function runSmoke({ app, win, production, reportPath }) {
         skipped: true,
         detail: "调试协议不可用，已跳过：" + error.message
       });
-      return [skipped("真实输入通道按键"), skipped("功能键 F5/F11/F12 可检测"), skipped("快捷键组合松开后不卡键")];
+      return [skipped("真实输入通道按键"), skipped("功能键 F5/F11/F12 可检测"), skipped("快捷键组合松开后不卡键"), skipped("F11 全屏只在松开时切换一次")];
     }
   }
 
